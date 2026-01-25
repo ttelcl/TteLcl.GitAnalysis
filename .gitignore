@@ -1,0 +1,20 @@
+
+*.bak
+*.ignore.*
+
+Generated/*.cs
+*.nupkg
+*.suo
+*.user
+bin/
+obj/
+lib/
+_*/
+TestResults/
+*.psess
+*.vsp
+.vs/
+
+### VisualStudioCode ###
+.vscode/
+
