@@ -13,12 +13,16 @@ using System.Threading.Tasks;
 namespace TteLcl.GitModel;
 
 /// <summary>
-/// Provides static methods to calculate the hashes used as identifiers in GIT
+/// Provides static methods to calculate the hashes used as identifiers in GIT.
+/// Mostly intended for internal use by
+/// <see cref="GitIdCache.ForContent(string, ReadOnlySpan{byte})"/> and
+/// <see cref="GitIdCache.ForBlob(ReadOnlySpan{byte})"/>
 /// </summary>
 public static class GitHash
 {
   /// <summary>
   /// Calculates the hash of the concatenation of the segments.
+  /// Primarily intended for internal use.
   /// </summary>
   /// <param name="header"></param>
   /// <param name="content"></param>
@@ -45,8 +49,22 @@ public static class GitHash
   }
 
   /// <summary>
+  /// Calculates the hash of the concatenation of the segments.
+  /// Primarily intended for internal use.
+  /// </summary>
+  public static byte[] FromRawContent(
+    ReadOnlySpan<byte> header,
+    ReadOnlySpan<byte> content)
+  {
+    var bytes = new byte[20];
+    FromRawContent(header, content, bytes);
+    return bytes;
+  }
+
+  /// <summary>
   /// Calculate the GIT hash for an object with the given
   /// <paramref name="type"/> and <paramref name="content"/>.
+  /// Primarily for invocation via <see cref="GitIdCache.ForContent(string, ReadOnlySpan{byte})"/>.
   /// </summary>
   /// <param name="type"></param>
   /// <param name="content"></param>
@@ -72,8 +90,23 @@ public static class GitHash
   }
 
   /// <summary>
+  /// Calculate the GIT hash for an object with the given
+  /// <paramref name="type"/> and <paramref name="content"/>.
+  /// Primarily intended for internal use.
+  /// </summary>
+  public static byte[] FromContent(
+    string type,
+    ReadOnlySpan<byte> content)
+  {
+    var bytes = new byte[20];
+    FromContent(type, content, bytes);
+    return bytes;
+  }
+
+  /// <summary>
   /// Calculate the GIT hash for an object with the type
   /// "blob" and the given <paramref name="content"/>.
+  /// Primarily for invocation via <see cref="GitIdCache.ForBlob(ReadOnlySpan{byte})"/>.
   /// </summary>
   /// <param name="content"></param>
   /// <param name="hash"></param>
@@ -84,5 +117,27 @@ public static class GitHash
     FromContent("blob", content, hash);
   }
 
+  /// <summary>
+  /// Calculate the GIT hash for an object with the type
+  /// "blob" and the given <paramref name="content"/>.
+  /// Primarily intended for internal use.
+  /// </summary>
+  public static byte[] FromContent(
+    ReadOnlySpan<byte> content)
+  {
+    var bytes = new byte[20];
+    FromContent(content, bytes);
+    return bytes;
+  }
 
+  /// <summary>
+  /// Convert a byte arry containing an SHA1 hash into a GitId
+  /// Primarily intended for internal use.
+  /// </summary>
+  /// <param name="hash"></param>
+  /// <returns></returns>
+  public static GitId ToGitId(this byte[] hash)
+  {
+    return new GitId(hash);
+  }
 }

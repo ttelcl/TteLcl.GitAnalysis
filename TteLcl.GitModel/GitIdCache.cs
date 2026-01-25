@@ -85,4 +85,46 @@ public class GitIdCache
     }
   }
 
+  /// <summary>
+  /// Calculate the git object hash for the given object type and content,
+  /// and return the corresponding <see cref="GitId"/> for the result
+  /// (inserting it in this cache if not yet present)
+  /// </summary>
+  /// <param name="type">
+  /// The git object type ("blob", "tree", "commit" or "tag"), or your custom
+  /// type identifier.
+  /// </param>
+  /// <param name="content">
+  /// The raw content of the object. If <paramref name="type"/> is other than
+  /// "blob", the format should be as prescribed by the type.
+  /// </param>
+  /// <returns></returns>
+  public GitId ForContent(string type, ReadOnlySpan<byte> content)
+  {
+    Span<byte> hash = stackalloc byte[20];
+    GitHash.FromContent(type, content, hash);
+    var shortId = ShortId.FromHashBytes(hash);
+    if(TryGetValue(shortId, out var gitId))
+    {
+      return gitId;
+    }
+    gitId = new GitId(hash);
+    _map.Add(shortId, gitId);
+    return gitId;
+  }
+
+  /// <summary>
+  /// Calculate the git object hash for the given blob,
+  /// and return the corresponding <see cref="GitId"/> for the result
+  /// (inserting it in this cache if not yet present)
+  /// </summary>
+  /// <param name="blob">
+  /// The blob content
+  /// </param>
+  /// <returns></returns>
+  public GitId ForBlob(ReadOnlySpan<byte> blob)
+  {
+    return ForContent("blob", blob);
+  }
+
 }
