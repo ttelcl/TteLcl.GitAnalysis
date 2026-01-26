@@ -1,5 +1,7 @@
 <Solution>
-  <Folder Name="/Apps/" />
+  <Folder Name="/Apps/">
+    <Project Path="gitinfo/gitinfo.fsproj" Id="3da5a58c-258e-408a-ae41-491adf7b4b86" />
+  </Folder>
   <Folder Name="/Libraries/">
     <Project Path="TteLcl.GitModel/TteLcl.GitModel.csproj" Id="2aefe22d-9127-4555-a8ea-4cd1c93be2d6" />
   </Folder>
