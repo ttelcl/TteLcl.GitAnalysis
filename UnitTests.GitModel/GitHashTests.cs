@@ -80,7 +80,7 @@ public class GitHashTests
     var prefixBytes = Encoding.UTF8.GetBytes(prefixText);
     prefixBytes.CopyTo(testblob[0..18]);
     var helperId = GitId.FromString("044a93858877fc44672001c6424c62770bed97cd");
-    helperId.Binary.ToArray().CopyTo(testblob[18..]);
+    helperId.CopyTo(testblob[18..]);
     var gitId = cache.ForContent("tree", testblob);
     Assert.NotNull(gitId);
     DumpGitId("small tree sample", gitId);

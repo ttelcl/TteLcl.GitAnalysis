@@ -10,7 +10,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace TteLcl.GitModel;
+namespace TteLcl.GitModel.Utilities;
 
 /// <summary>
 /// Provides static methods to calculate the hashes used as identifiers in GIT.

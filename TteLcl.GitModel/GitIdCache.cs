@@ -10,6 +10,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using TteLcl.GitModel.Utilities;
+
 namespace TteLcl.GitModel;
 
 /// <summary>
@@ -159,6 +161,18 @@ public class GitIdCache
   public GitId ForBlob(string utf8content)
   {
     return ForContent("blob", utf8content);
+  }
+
+  /// <summary>
+  /// Create or look up a <see cref="GitId"/> for a "path" with value <paramref name="path"/>.
+  /// Path objects are not a formal GIT concept, but are used in this library to represent
+  /// the location of blobs and trees.
+  /// </summary>
+  /// <param name="path"></param>
+  /// <returns></returns>
+  public GitId ForPath(string path)
+  {
+    return ForContent("path", path);
   }
 
   /// <summary>

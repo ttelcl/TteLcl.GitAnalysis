@@ -85,4 +85,15 @@ public class GitId
   /// A view on the binary form of this ID (20 bytes)
   /// </summary>
   public ReadOnlySpan<byte> Binary => _bytes;
+
+  /// <summary>
+  /// Copy the <see cref="Binary"/> form to the <paramref name="destination"/> span
+  /// </summary>
+  /// <param name="destination">
+  /// A 20 byte buffer to copy the binary git id to.
+  /// </param>
+  public void CopyTo(Span<byte> destination)
+  {
+    _bytes.CopyTo(destination);
+  }
 }
