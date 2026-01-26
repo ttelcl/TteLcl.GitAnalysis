@@ -88,6 +88,51 @@ public class GitIdCache
   }
 
   /// <summary>
+  /// Return the <see cref="GitId"/> for the given <paramref name="sha1"/> binary representation.
+  /// If not already registered, it will be created and inserted.
+  /// </summary>
+  /// <param name="sha1">
+  /// The 20 byte SHA1 hash that the GitId represents
+  /// </param>
+  /// <returns></returns>
+  /// <exception cref="ArgumentException"></exception>
+  public GitId this[ReadOnlySpan<byte> sha1] {
+    get {
+      if(sha1.Length != 20)
+      {
+        throw new ArgumentException(
+          "Expecting a 20 byte hash result as argument",
+          nameof(sha1));
+      }
+      var shortId = ShortId.FromHashBytes(sha1);
+      if(TryGetValue(shortId, out var gitId))
+      {
+        return gitId;
+      }
+      gitId = new GitId(sha1);
+      _map.Add(shortId, gitId);
+      return gitId;
+    }
+  }
+
+  /// <summary>
+  /// If <paramref name="gitId"/> is already in this cache: return the cached git id.
+  /// Otherwise insert <paramref name="gitId"/> in this cache and return it.
+  /// </summary>
+  /// <param name="gitId"></param>
+  /// <returns></returns>
+  public GitId Normalize(GitId gitId)
+  {
+    if(TryGetValue(gitId.Id, out var gitId2))
+    {
+      // An instance already existed
+      return gitId2;
+    }
+    _map.Add(gitId.Id, gitId);
+    return gitId;
+  }
+
+  /// <summary>
   /// Calculate the git object hash for the given object <paramref name="type"/>
   /// and binary <paramref name="content"/>,
   /// and return the corresponding <see cref="GitId"/> for the result
@@ -161,6 +206,27 @@ public class GitIdCache
   public GitId ForBlob(string utf8content)
   {
     return ForContent("blob", utf8content);
+  }
+
+  /// <summary>
+  /// Create and store a <see cref="GitId"/> for an ordered pair of two existing GitIds.
+  /// </summary>
+  /// <param name="type">
+  /// The object type name to use, e.g. "pathblob" or "pathtree"
+  /// </param>
+  /// <param name="pathId">
+  /// The first <see cref="GitId"/>. Presumably a path id.
+  /// </param>
+  /// <param name="itemId">
+  /// The second <see cref="GitId"/>. Presumably a tree id or blob id.
+  /// </param>
+  /// <returns></returns>
+  public GitId Compose(string type, GitId pathId, GitId itemId)
+  {
+    Span<byte> buffer = stackalloc byte[40];
+    pathId.CopyTo(buffer[0..20]);
+    itemId.CopyTo(buffer[20..]);
+    return ForContent(type, buffer);
   }
 
   /// <summary>
