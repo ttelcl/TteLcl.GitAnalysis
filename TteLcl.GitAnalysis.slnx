@@ -8,4 +8,7 @@
     <File Path="LICENSE" />
     <File Path="README.md" />
   </Folder>
+  <Folder Name="/UnitTests/">
+    <Project Path="UnitTests.GitModel/UnitTests.GitModel.csproj" Id="acc1ffd2-59cc-42dd-be87-d39c042b2d3f" />
+  </Folder>
 </Solution>

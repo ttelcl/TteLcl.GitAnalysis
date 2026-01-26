@@ -98,10 +98,13 @@ public readonly struct ShortId: IEquatable<ShortId>, IComparable<ShortId>, IComp
     return id.Key;
   }
 
-  /// <inheritdoc/>
-  public bool Equals(ShortId other)
+  /// <summary>
+  /// Returns the full hexadecimal value of <see cref="Key"/>.
+  /// </summary>
+  /// <returns></returns>
+  public override string ToString()
   {
-    return Key == other.Key;
+    return Key.ToString("x16");
   }
 
   /// <inheritdoc/>
@@ -123,5 +126,78 @@ public readonly struct ShortId: IEquatable<ShortId>, IComparable<ShortId>, IComp
     }
     throw new NotSupportedException(
       "ShortIds can only be compared to other ShortIds and UInt64");
+  }
+
+  /// <inheritdoc/>
+  public bool Equals(ShortId other)
+  {
+    return Key == other.Key;
+  }
+
+  /// <inheritdoc/>
+  public override bool Equals(object? obj)
+  {
+    if(obj is ShortId other)
+    {
+      return Key.Equals(other.Key); 
+    }
+    // Do NOT support equality test against ulong (because the reverse is not implemented)
+    return false;
+  }
+
+  /// <summary>
+  /// Implements GetHashCode() by returning the hash code of <see cref="Key"/>
+  /// </summary>
+  public override int GetHashCode()
+  {
+    return Key.GetHashCode();
+  }
+
+  /// <summary>
+  /// Operator implementation
+  /// </summary>
+  public static bool operator ==(ShortId left, ShortId right)
+  {
+    return left.Equals(right);
+  }
+
+  /// <summary>
+  /// Operator implementation
+  /// </summary>
+  public static bool operator !=(ShortId left, ShortId right)
+  {
+    return !(left==right);
+  }
+
+  /// <summary>
+  /// Operator implementation
+  /// </summary>
+  public static bool operator <(ShortId left, ShortId right)
+  {
+    return left.CompareTo(right)<0;
+  }
+
+  /// <summary>
+  /// Operator implementation
+  /// </summary>
+  public static bool operator <=(ShortId left, ShortId right)
+  {
+    return left.CompareTo(right)<=0;
+  }
+
+  /// <summary>
+  /// Operator implementation
+  /// </summary>
+  public static bool operator >(ShortId left, ShortId right)
+  {
+    return left.CompareTo(right)>0;
+  }
+
+  /// <summary>
+  /// Operator implementation
+  /// </summary>
+  public static bool operator >=(ShortId left, ShortId right)
+  {
+    return left.CompareTo(right)>=0;
   }
 }

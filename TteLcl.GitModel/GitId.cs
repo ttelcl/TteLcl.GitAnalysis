@@ -81,5 +81,8 @@ public class GitId
   /// </summary>
   public ShortId Id { get; }
 
-  
+  /// <summary>
+  /// A view on the binary form of this ID (20 bytes)
+  /// </summary>
+  public ReadOnlySpan<byte> Binary => _bytes;
 }

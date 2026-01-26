@@ -127,4 +127,8 @@ public class GitIdCache
     return ForContent("blob", blob);
   }
 
+  /// <summary>
+  /// A view on all the cached GitId instances
+  /// </summary>
+  public IReadOnlyCollection<GitId> Entries => _map.Values;
 }
