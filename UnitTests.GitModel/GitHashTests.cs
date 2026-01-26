@@ -74,6 +74,7 @@ public class GitHashTests
     // instead and redirect it to a file (because it is binary)
     // WRONG! "100644 blob 044a93858877fc44672001c6424c62770bed97cd\t.gitignore\n"
     // Let's reconstruct the binary blob
+    // (ref: https://stackoverflow.com/questions/14790681/what-is-the-internal-format-of-a-git-tree-object)
     Span<byte> testblob = stackalloc byte[38]; // we know the test case is 38 bytes.
     var prefixText = "100644 .gitignore\0";
     var prefixBytes = Encoding.UTF8.GetBytes(prefixText);
