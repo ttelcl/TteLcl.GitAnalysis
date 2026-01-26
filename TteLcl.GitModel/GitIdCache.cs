@@ -86,7 +86,8 @@ public class GitIdCache
   }
 
   /// <summary>
-  /// Calculate the git object hash for the given object type and content,
+  /// Calculate the git object hash for the given object <paramref name="type"/>
+  /// and binary <paramref name="content"/>,
   /// and return the corresponding <see cref="GitId"/> for the result
   /// (inserting it in this cache if not yet present)
   /// </summary>
@@ -114,6 +115,25 @@ public class GitIdCache
   }
 
   /// <summary>
+  /// Calculate the git object hash for the given object <paramref name="type"/>
+  /// and textual <paramref name="utf8content"/>,
+  /// and return the corresponding <see cref="GitId"/> for the result
+  /// (inserting it in this cache if not yet present)
+  /// </summary>
+  /// <param name="type">
+  /// The git object type ("blob", "tree", "commit" or "tag"), or your custom
+  /// type identifier.
+  /// </param>
+  /// <param name="utf8content">
+  /// The raw content of the object as a string to be UTF8 encoded.
+  /// </param>
+  /// <returns></returns>
+  public GitId ForContent(string type, string utf8content)
+  {
+    return ForContent(type, Encoding.UTF8.GetBytes(utf8content));
+  }
+
+  /// <summary>
   /// Calculate the git object hash for the given blob,
   /// and return the corresponding <see cref="GitId"/> for the result
   /// (inserting it in this cache if not yet present)
@@ -125,6 +145,20 @@ public class GitIdCache
   public GitId ForBlob(ReadOnlySpan<byte> blob)
   {
     return ForContent("blob", blob);
+  }
+
+  /// <summary>
+  /// Calculate the git object hash for the given textual blob <paramref name="utf8content"/>,
+  /// and return the corresponding <see cref="GitId"/> for the result
+  /// (inserting it in this cache if not yet present)
+  /// </summary>
+  /// <param name="utf8content">
+  /// The blob content, which will be UTF8 encoded.
+  /// </param>
+  /// <returns></returns>
+  public GitId ForBlob(string utf8content)
+  {
+    return ForContent("blob", utf8content);
   }
 
   /// <summary>

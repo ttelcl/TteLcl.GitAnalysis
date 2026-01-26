@@ -50,6 +50,42 @@ public class GitHashTests
     Assert.Equal(expectedKey, testGitId.Id); // implicit cast test
   }
 
+  [Fact]
+  public void CanReproduceBlob()
+  {
+    var cache = new GitIdCache();
+    // As found in https://git-scm.com/book/en/v2/Git-Internals-Git-Objects
+    var expectedSha = "d670460b4b4aece5915caf5c68d12f560a9fe3e4";
+    var text = "test content\n";
+    var gitId = cache.ForBlob(text);
+    Assert.NotNull(gitId);
+    DumpGitId("'test content' plus newline", gitId);
+    Assert.Equal(expectedSha, gitId.FullString);
+  }
+
+  [Fact]
+  public void CanReproduceTree()
+  {
+    var cache = new GitIdCache();
+
+    // As found in a real-world repo, containing just a .gitignore file
+    var expectedSha = "54c5e4a0017f00d5a94aeafbcb5413bf526d1771";
+    // Beware! The output of git cat-file -p is misleading! Use "git cat-file tree"
+    // instead and redirect it to a file (because it is binary)
+    // WRONG! "100644 blob 044a93858877fc44672001c6424c62770bed97cd\t.gitignore\n"
+    // Let's reconstruct the binary blob
+    Span<byte> testblob = stackalloc byte[38]; // we know the test case is 38 bytes.
+    var prefixText = "100644 .gitignore\0";
+    var prefixBytes = Encoding.UTF8.GetBytes(prefixText);
+    prefixBytes.CopyTo(testblob[0..18]);
+    var helperId = GitId.FromString("044a93858877fc44672001c6424c62770bed97cd");
+    helperId.Binary.ToArray().CopyTo(testblob[18..]);
+    var gitId = cache.ForContent("tree", testblob);
+    Assert.NotNull(gitId);
+    DumpGitId("small tree sample", gitId);
+    Assert.Equal(expectedSha, gitId.FullString);
+  }
+
   private void DumpGitId(string heading, GitId gitId)
   {
     _sink.WriteLine($"GitId {heading}:");
