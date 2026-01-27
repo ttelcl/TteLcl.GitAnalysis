@@ -1,12 +1,14 @@
 ﻿using System;
+using System.IO;
 using System.Text;
 
 using Xunit;
 using Xunit.Abstractions;
 
+using LibGit2Sharp;
+
 using TteLcl.GitModel;
 using TteLcl.GitModel.Builder;
-using System.IO;
 
 namespace UnitTests.GitModel;
 
@@ -53,5 +55,26 @@ public class BuilderTests
 
     var gitDbFolder2 = GitRepo.FindGitDbFolder(gitdbFolder);
     Assert.Equal(gitdbFolder, gitDbFolder2);
+  }
+
+  [Fact]
+  public void CanOpenRepo()
+  {
+    var witness = Environment.CurrentDirectory;
+    using var repo = new GitRepo(witness);
+    Assert.NotNull(repo.Repo);
+    var repo2 = repo.Repo;
+    _sink.WriteLine("Refs:");
+    foreach(var r in repo2.Refs)
+    {
+      if(r is DirectReference dr)
+      {
+        _sink.WriteLine($" direct:  {dr.TargetIdentifier}  <-  {dr.CanonicalName}");
+      }
+      else if(r is SymbolicReference sr)
+      {
+        _sink.WriteLine($" symbol:  {sr.TargetIdentifier,40}  <-  {sr.CanonicalName}");
+      }
+    }
   }
 }

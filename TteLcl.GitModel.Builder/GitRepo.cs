@@ -14,8 +14,10 @@ namespace TteLcl.GitModel.Builder;
 /// <summary>
 /// Reference to a GIT repository
 /// </summary>
-public class GitRepo
+public class GitRepo: IDisposable
 {
+  private bool _disposed;
+
   /// <summary>
   /// Create a new <see cref="GitRepo"/> instance referencing an existing git repository
   /// </summary>
@@ -35,6 +37,7 @@ public class GitRepo
         nameof(witnessPath));
     }
     GitDbFolder = dbFolder;
+    Repo = new Repository(dbFolder);
   }
 
   /// <summary>
@@ -52,6 +55,11 @@ public class GitRepo
   /// in the repository root. For a bare repository that is the repository folder itself.
   /// </summary>
   public string GitDbFolder { get; }
+
+  /// <summary>
+  /// The underlying (libgit2) repository
+  /// </summary>
+  public Repository Repo { get; }
 
   /// <summary>
   /// Locate the GIT database folder that contains (or is) the given folder or file
@@ -124,5 +132,18 @@ public class GitRepo
     return
       folder.EndsWith(".git", StringComparison.OrdinalIgnoreCase)
       && File.Exists(Path.Combine(folder, "config"));
+  }
+
+  /// <summary>
+  /// Clean up
+  /// </summary>
+  public void Dispose()
+  {
+    if(!_disposed)
+    {
+      _disposed = true;
+      Repo?.Dispose();
+      GC.SuppressFinalize(this);
+    }
   }
 }
