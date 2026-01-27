@@ -3,6 +3,7 @@
     <Project Path="gitinfo/gitinfo.fsproj" Id="3da5a58c-258e-408a-ae41-491adf7b4b86" />
   </Folder>
   <Folder Name="/Libraries/">
+    <Project Path="TteLcl.GitModel.Builder/TteLcl.GitModel.Builder.csproj" Id="0a5a7ae6-a9a5-4b4b-8980-fdd60e1271df" />
     <Project Path="TteLcl.GitModel/TteLcl.GitModel.csproj" Id="2aefe22d-9127-4555-a8ea-4cd1c93be2d6" />
   </Folder>
   <Folder Name="/Solution Items/">

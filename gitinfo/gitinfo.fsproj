@@ -22,6 +22,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\TteLcl.GitModel.Builder\TteLcl.GitModel.Builder.csproj" />
     <ProjectReference Include="..\TteLcl.GitModel\TteLcl.GitModel.csproj" />
   </ItemGroup>
 
