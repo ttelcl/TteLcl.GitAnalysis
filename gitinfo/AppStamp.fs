@@ -16,7 +16,6 @@ type private StampSource =
   | AuthorStamp
 
 type private TouchTarget =
-  | NoTouch
   | AlwaysTouch of string
   | NewerTouch of string
 
@@ -24,7 +23,7 @@ type private Options = {
   RepoWitness: string
   StampType: StampSource
   Reference: string
-  Touch: TouchTarget
+  Touches: TouchTarget list
 }
 
 let private runStamp o =
@@ -54,29 +53,28 @@ let private runStamp o =
       let stampText = stamp.ToString("yyyy-MM-dd HH:mm:ss K")
       cp $"Commit \fb{commitId}\f0 in \fc{repositoryPath}\f0 was \fy{label}\f0 on \fg{stampText}\f0."
       let utcStamp = stamp.UtcDateTime
-      match o.Touch with
-      | NoTouch ->
-        ()
-      | AlwaysTouch touchFile ->
-        if touchFile |> File.Exists then
-          cp $"  Updating time stamp of \fg{touchFile}\f0."
-          File.SetLastWriteTimeUtc(touchFile, utcStamp)
-        else
-          cp $"  Creating \fg{touchFile}\f0 and updating its time stamp."
-          File.Create(touchFile).Dispose()
-          File.SetLastWriteTimeUtc(touchFile, utcStamp)
-      | NewerTouch touchFile ->
-        if touchFile |> File.Exists then
-          let existingStamp = File.GetLastWriteTimeUtc(touchFile)
-          if existingStamp >= utcStamp then
-            cp $"  \foExisting time stamp of \fg{touchFile}\fo is already newer.\f0 Not updating."
-          else
+      for touchTarget in o.Touches do
+        match touchTarget with
+        | AlwaysTouch touchFile ->
+          if touchFile |> File.Exists then
             cp $"  Updating time stamp of \fg{touchFile}\f0."
             File.SetLastWriteTimeUtc(touchFile, utcStamp)
-        else
-          cp $"  Creating \fg{touchFile}\f0 and updating its time stamp."
-          File.Create(touchFile).Dispose()
-          File.SetLastWriteTimeUtc(touchFile, utcStamp)
+          else
+            cp $"  Creating \fg{touchFile}\f0 and updating its time stamp."
+            File.Create(touchFile).Dispose()
+            File.SetLastWriteTimeUtc(touchFile, utcStamp)
+        | NewerTouch touchFile ->
+          if touchFile |> File.Exists then
+            let existingStamp = File.GetLastWriteTimeUtc(touchFile)
+            if existingStamp >= utcStamp then
+              cp $"  \foExisting time stamp of \fg{touchFile}\fo is already newer.\f0 Not updating."
+            else
+              cp $"  Updating time stamp of \fg{touchFile}\f0."
+              File.SetLastWriteTimeUtc(touchFile, utcStamp)
+          else
+            cp $"  Creating \fg{touchFile}\f0 and updating its time stamp."
+            File.Create(touchFile).Dispose()
+            File.SetLastWriteTimeUtc(touchFile, utcStamp)
       0
 
 let run args =
@@ -98,11 +96,11 @@ let run args =
     | "-a" :: rest ->
       rest |> parseMore {o with StampType = AuthorStamp}
     | "-t" :: file :: rest ->
-      rest |> parseMore {o with Touch = file |> AlwaysTouch}
+      rest |> parseMore {o with Touches = AlwaysTouch(file) :: o.Touches}
     | "-T" :: file :: rest ->
-      rest |> parseMore {o with Touch = file |> NewerTouch}
+      rest |> parseMore {o with Touches = NewerTouch(file) :: o.Touches}
     | [] ->
-      o |> Some
+      {o with Touches = o.Touches |> List.rev} |> Some
     | x :: _ ->
       cp $"\foUnknown option \fy{x}\f0."
       None
@@ -110,7 +108,7 @@ let run args =
     RepoWitness = null
     StampType = CommitStamp
     Reference = "HEAD"
-    Touch = NoTouch
+    Touches = []
   }
   match oo with
   | None ->
