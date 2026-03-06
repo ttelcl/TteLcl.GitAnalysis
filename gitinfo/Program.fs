@@ -19,6 +19,8 @@ let rec run arglist =
     0  // program return status code to the operating system; 0 == "OK"
   | "hash" :: rest ->
     rest |> AppHash.run
+  | "stamp" :: rest ->
+    rest |> AppStamp.run
   | x :: _ ->
     cp $"\frUnknown command \f0'\fy{x}\f0'"
     1
