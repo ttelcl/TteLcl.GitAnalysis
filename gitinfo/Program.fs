@@ -21,6 +21,9 @@ let rec run arglist =
     rest |> AppHash.run
   | "stamp" :: rest ->
     rest |> AppStamp.run
+  | "refs" :: rest 
+  | "references" :: rest ->
+    rest |> AppReferences.run
   | x :: _ ->
     cp $"\frUnknown command \f0'\fy{x}\f0'"
     1

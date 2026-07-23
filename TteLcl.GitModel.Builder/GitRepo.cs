@@ -14,7 +14,7 @@ namespace TteLcl.GitModel.Builder;
 /// <summary>
 /// Reference to a GIT repository
 /// </summary>
-public class GitRepo: IDisposable
+public sealed class GitRepo: IDisposable
 {
   private bool _disposed;
 
@@ -38,6 +38,9 @@ public class GitRepo: IDisposable
     }
     GitDbFolder = dbFolder;
     Repo = new Repository(dbFolder);
+    var labelfolder =
+      dbFolder.EndsWith(".git") ? Path.GetDirectoryName(dbFolder)! : dbFolder;
+    Label = Path.GetFileName(labelfolder);
   }
 
   /// <summary>
@@ -60,6 +63,11 @@ public class GitRepo: IDisposable
   /// The underlying (libgit2) repository
   /// </summary>
   public Repository Repo { get; }
+
+  /// <summary>
+  /// The label to identify this repository. Initially set based on the name of the folder.
+  /// </summary>
+  public string Label { get; set; }
 
   /// <summary>
   /// Locate the GIT database folder that contains (or is) the given folder or file

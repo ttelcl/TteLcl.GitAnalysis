@@ -18,8 +18,13 @@
     <Compile Include="Usage.fs" />
     <Compile Include="AppHash.fs" />
     <Compile Include="AppStamp.fs" />
+    <Compile Include="AppReferences.fs" />
     <Compile Include="Program.fs" />
     <None Include="README.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="LibGit2Sharp" Version="0.31.0" />
   </ItemGroup>
 
   <ItemGroup>
