@@ -19,6 +19,7 @@
     <Compile Include="AppHash.fs" />
     <Compile Include="AppStamp.fs" />
     <Compile Include="AppReferences.fs" />
+    <Compile Include="AppCommits.fs" />
     <Compile Include="Program.fs" />
     <None Include="README.md" />
   </ItemGroup>

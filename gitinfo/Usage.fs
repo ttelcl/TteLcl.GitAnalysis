@@ -39,6 +39,17 @@ let usage focus =
     cp "  \fg-list\fx\f0         List references to the console"
     cp "  \fg-dump\fx\f0         Dump references to a CSV file (name derived from the repository)"
     cp ""
+  if showSection "commits" then
+    cp "\fogitinfo \fycommits\f0 [\fg-repo \fcpath\f0] {\fg-i \fcinclude-glob\f0} {\fg-x \fcexclude-glob\f0} [\fg-dump\f0] [\fg-list \fcn\f0]"
+    cp "   Return information on commits in the git repository matching the include and exclude criteria."
+    cp "   Without any \fg-i\f0 options, commits on the current branch are selected."
+  if showDetail "commits" then
+    cp "  \fg-repo \fcpath\f0    Any path within the target repository. Defaults to the current directory"
+    cp "  \fg-dump\fx\f0         Dump per-commit information to a CSV file (name derived from the repository)"
+    cp "  \fg-list \fcn\f0       List the first \fcn\f0 matching commits on the console"
+    cp "  \fg-i \fcinclude\f0    A glob expression to include (e.g. '\fg-i \fcrefs/heads/*\f0' to include all local branches)"
+    cp "  \fg-x \fcexclude\f0    A glob expression to exclude (e.g. '\fg-x \fcrefs/remotes/origin/*\f0' to exclude all commits on remote branches)"
+    cp ""
   cp "\fg-v               \f0Verbose mode"
 
 
