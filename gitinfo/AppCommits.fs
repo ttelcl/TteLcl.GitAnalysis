@@ -61,9 +61,15 @@ let private parseArgs args =
     ExcludeGlobs = []
   }
 
+type private CommitSide =
+  | Tip
+  | Intern
+  | Tail
+
+
 type private TipTailCommit = {
   Sha: string
-  IsTip: bool
+  Side: CommitSide
   Stamp: DateTimeOffset
 }
 
@@ -101,62 +107,89 @@ let private runCommits o =
 
   let tips = commitMap.TipIds()
   let tails = commitMap.TailIds()
-  cp $"Found \fg{tips.Count}\f0 tips and \fo{tails.Count}\f0 tails"
+  let inners =
+    commitMap.Commits.Keys
+    |> Seq.where (fun sha -> sha |> tips.Contains |> not)
+    |> Seq.toArray
+  cp $"Found \fg{tips.Count}\f0 tips and \fo{tails.Count}\f0 tails and \fb{inners.Length}\f0 in-betweens"
 
-  let toTtc isTip (sha:string) =
+  let commitSide commitId =
+    if commitId |> tips.Contains then
+      CommitSide.Tip
+    elif commitId |> tails.Contains then
+      CommitSide.Tail
+    else
+      CommitSide.Intern
+
+  let toTtc sha =
+    let side = sha |> commitSide
     let commit = repo.Repo.Lookup<Commit>(sha)
     {
       Sha = sha
-      IsTip = isTip
+      Side = side
       Stamp = commit.Committer.When
     }
 
-  let tipsAndTails =
+  let relevantCommits =
     [
-      tips |> Seq.map (toTtc true)
-      tails |> Seq.map (toTtc false)
+      tips |> Seq.map toTtc
+      tails |> Seq.map toTtc
+      inners |> Seq.map toTtc
     ]
     |> Seq.concat
     |> Seq.sortBy (fun tot -> tot.Stamp)
     |> Seq.toArray
-  tipsAndTails |> Array.Reverse
+  relevantCommits |> Array.Reverse
 
-  for tot in tipsAndTails do
+  for tot in relevantCommits do
     let stamp = tot.Stamp.ToString("yyyy-MM-dd HH:mm:ss K")
-    if tot.IsTip then
-      cpx $"+ \fg{tot.Sha.Substring(0,8)}\f0  {stamp} "
-    else
-      cpx $"- \fo{tot.Sha.Substring(0,8)}\f0  {stamp} "
     let refs = tot.Sha |> commitReferenceMap.ReferencesForCommit |> Seq.sort |> Seq.toArray
-    for r in refs do
-      let color, shortname =
-        if r.StartsWith("refs/heads/") then
-          "\fg", r.Substring(11)
-        elif r.StartsWith("refs/remotes/") then
-          "\fc", r.Substring(13)
-        elif r.StartsWith("refs/tags/") then
-          "\fy", ("#" + r.Substring(10))
-        else
-          "\fr", r
-      cpx $" {color}{shortname}\f0"
-    cp "."
+    let isInner = tot.Side = CommitSide.Intern
+    if (isInner |> not) || refs.Length > 0 then
+      // Skip unlabeled internal nodes
+      match tot.Side with
+      | CommitSide.Tip ->
+        cpx $"+ \fg{tot.Sha.Substring(0,8)}\f0  {stamp} "
+      | CommitSide.Tail ->
+        cpx $"- \fo{tot.Sha.Substring(0,8)}\f0  {stamp} "
+      | CommitSide.Intern ->
+        cpx $". \fk{tot.Sha.Substring(0,8)}\f0  \fk{stamp}\f0 "
+      for r in refs do
+        let color, shortname =
+          if r.StartsWith("refs/heads/") then
+            "\fg", r.Substring(11)
+          elif r.StartsWith("refs/remotes/") then
+            "\fc", r.Substring(13)
+          elif r.StartsWith("refs/tags/") then
+            "\fy", ("#" + r.Substring(10))
+          else
+            "\fr", r
+        let color = if isInner then color.ToUpper() else color          
+        cpx $" {color}{shortname}\f0"
+      cp "."
 
   if o.DoTips then
     let fileName = repo.Label + ".tips-tails.csv"
     do
       use csv = fileName |> startFile
       csv.WriteLine("kind,commit,stamp,references")
-      for tot in tipsAndTails do
+      for tot in relevantCommits do
         let stamp = tot.Stamp.ToString("yyyy-MM-dd HH:mm:ss K")
-        let kind = if tot.IsTip then "tip" else "tail"
+        let kind =
+          match tot.Side with
+          | CommitSide.Tip -> "tip"
+          | CommitSide.Tail -> "tail"
+          | CommitSide.Intern -> "inner"
         let refs =
           tot.Sha
           |> commitReferenceMap.ReferencesForCommit
           |> Seq.sort
           |> Seq.map abbreviateReference
           |> Seq.toArray
-        let references = String.Join(" ", refs)
-        csv.WriteLine($"{kind},{tot.Sha.Substring(0,8)},{stamp},{references}")
+        if tot.Side <> CommitSide.Intern || refs.Length > 0 then
+          // skip unlabeled internal nodes
+          let references = String.Join(" ", refs)
+          csv.WriteLine($"{kind},{tot.Sha.Substring(0,8)},{stamp},{references}")
     fileName |> finishFile
 
   0
