@@ -71,7 +71,42 @@ type private TipTailCommit = {
   Sha: string
   Side: CommitSide
   Stamp: DateTimeOffset
+  Stamp2: DateTimeOffset
 }
+
+type private ClassifiedRef =
+  | Branch of string
+  | Remote of string
+  | Tag of string
+  | Other of string
+
+type private ClassifiedRefs = {
+  Branches: string list
+  Remotes: string list
+  Tags: string list
+  Others: string list
+}
+
+let private foldRefs refs =
+  let foldRef state r =
+    match r with
+    | Branch b -> {state with Branches = b :: state.Branches}
+    | Remote r -> {state with Remotes = r :: state.Remotes}
+    | Tag t -> {state with Tags = t :: state.Tags}
+    | Other o -> {state with Others = o :: state.Others}
+  let folded = refs |> Seq.fold foldRef {
+      Branches = []
+      Remotes = []
+      Tags = []
+      Others = []
+    }
+  {
+    Branches = folded.Branches |> List.rev
+    Remotes = folded.Remotes |> List.rev
+    Tags = folded.Tags |> List.rev
+    Others = folded.Others |> List.rev
+  }
+
 
 let private abbreviateReference (refname: string) =
   if refname.StartsWith("refs/heads/") then
@@ -82,6 +117,16 @@ let private abbreviateReference (refname: string) =
     "t:" + refname.Substring(10)
   else
     refname
+
+let private classifyReference (refname: string) =
+  if refname.StartsWith("refs/heads/") then
+    refname.Substring(11) |> ClassifiedRef.Branch
+  elif refname.StartsWith("refs/remotes/") then
+    refname.Substring(13) |> ClassifiedRef.Remote
+  elif refname.StartsWith("refs/tags/") then
+    refname.Substring(10) |> ClassifiedRef.Tag
+  else
+    refname |> ClassifiedRef.Other
 
 let private runCommits o =
   use repo = new GitRepo(o.Witness)
@@ -128,6 +173,7 @@ let private runCommits o =
       Sha = sha
       Side = side
       Stamp = commit.Committer.When
+      Stamp2 = commit.Author.When
     }
 
   let relevantCommits =
@@ -172,9 +218,14 @@ let private runCommits o =
     let fileName = repo.Label + ".tips-tails.csv"
     do
       use csv = fileName |> startFile
-      csv.WriteLine("kind,commit,stamp,references")
+      csv.WriteLine("kind,commit,stamp,authored,branches,remotes,tags,others")
       for tot in relevantCommits do
         let stamp = tot.Stamp.ToString("yyyy-MM-dd HH:mm:ss K")
+        let authored =
+          if tot.Stamp = tot.Stamp2 then
+            ""
+          else
+            tot.Stamp2.ToString("yyyy-MM-dd HH:mm:ss")
         let kind =
           match tot.Side with
           | CommitSide.Tip -> "tip"
@@ -184,12 +235,16 @@ let private runCommits o =
           tot.Sha
           |> commitReferenceMap.ReferencesForCommit
           |> Seq.sort
-          |> Seq.map abbreviateReference
+          |> Seq.map classifyReference
           |> Seq.toArray
         if tot.Side <> CommitSide.Intern || refs.Length > 0 then
           // skip unlabeled internal nodes
-          let references = String.Join(" ", refs)
-          csv.WriteLine($"{kind},{tot.Sha.Substring(0,8)},{stamp},{references}")
+          let foldedRefs = refs |> foldRefs
+          let branches = String.Join(" ", foldedRefs.Branches)
+          let remoteBranches = String.Join(" ", foldedRefs.Remotes)
+          let tags = String.Join(" ", foldedRefs.Tags)
+          let others = String.Join(" ", foldedRefs.Others)
+          csv.WriteLine($"{kind},{tot.Sha.Substring(0,8)},{stamp},{authored},{branches},{remoteBranches},{tags},{others}")
     fileName |> finishFile
 
   0
