@@ -17,6 +17,8 @@ type private Options = {
   ListCount: int
   DoDump: bool
   DoTips: bool
+  DoShow: bool
+  DoEdges: bool
   IncludeGlobs: string list
   ExcludeGlobs: string list
 }
@@ -43,6 +45,11 @@ let private parseArgs args =
       rest |> parseMore {o with DoDump = true}
     | "-tips" :: rest ->
       rest |> parseMore {o with DoTips = true}
+    | "-show" :: rest ->
+      rest |> parseMore {o with DoShow = true}
+    | "-edges" :: rest
+    | "-edge" :: rest ->
+      rest |> parseMore {o with DoEdges = true}
     | "-i" :: includeGlob :: rest ->
       rest |> parseMore {o with IncludeGlobs = includeGlob :: o.IncludeGlobs}
     | "-x" :: excludeGlob :: rest ->
@@ -56,7 +63,9 @@ let private parseArgs args =
     Witness = Environment.CurrentDirectory
     ListCount = 0
     DoDump = false
-    DoTips = true
+    DoTips = false
+    DoShow = false
+    DoEdges = false
     IncludeGlobs = []
     ExcludeGlobs = []
   }
@@ -86,6 +95,20 @@ type private ClassifiedRefs = {
   Tags: string list
   Others: string list
 }
+
+let timeSeparation (t1:DateTimeOffset) (t2:DateTimeOffset) =
+  if t1.Year <> t2.Year then
+    "5(year)", "", t1.ToString("yyyy"), t2.ToString("yyyy")
+  elif t1.Month <> t2.Month then
+    "4(month)", t1.ToString("yyyy") + "-", t1.ToString("MM"), t2.ToString("MM")
+  elif t1.Day <> t2.Day then
+    "3(day)", t1.ToString("yyyy-MM") + "-", t1.ToString("dd"), t2.ToString("dd")
+  elif t1.Hour <> t2.Hour then
+    "2(hour)", t1.ToString("yyyy-MM-dd") + " ", t1.ToString("HH"), t2.ToString("HH")
+  elif t1.Minute <> t2.Minute then
+    "1(minute)", t1.ToString("yyyy-MM-dd HH") + ":", t1.ToString("mm"), t2.ToString("mm")
+  else
+    "0(instant)", t1.ToString("yyyy-MM-dd HH:mm") + ":", t1.ToString("ss"), t2.ToString("ss")
 
 let private foldRefs refs =
   let foldRef state r =
@@ -187,32 +210,33 @@ let private runCommits o =
     |> Seq.toArray
   relevantCommits |> Array.Reverse
 
-  for tot in relevantCommits do
-    let stamp = tot.Stamp.ToString("yyyy-MM-dd HH:mm:ss K")
-    let refs = tot.Sha |> commitReferenceMap.ReferencesForCommit |> Seq.sort |> Seq.toArray
-    let isInner = tot.Side = CommitSide.Intern
-    if (isInner |> not) || refs.Length > 0 then
-      // Skip unlabeled internal nodes
-      match tot.Side with
-      | CommitSide.Tip ->
-        cpx $"+ \fg{tot.Sha.Substring(0,8)}\f0  {stamp} "
-      | CommitSide.Tail ->
-        cpx $"- \fo{tot.Sha.Substring(0,8)}\f0  {stamp} "
-      | CommitSide.Intern ->
-        cpx $". \fk{tot.Sha.Substring(0,8)}\f0  \fk{stamp}\f0 "
-      for r in refs do
-        let color, shortname =
-          if r.StartsWith("refs/heads/") then
-            "\fg", r.Substring(11)
-          elif r.StartsWith("refs/remotes/") then
-            "\fc", r.Substring(13)
-          elif r.StartsWith("refs/tags/") then
-            "\fy", ("#" + r.Substring(10))
-          else
-            "\fr", r
-        let color = if isInner then color.ToUpper() else color          
-        cpx $" {color}{shortname}\f0"
-      cp "."
+  if o.DoShow then
+    for tot in relevantCommits do
+      let stamp = tot.Stamp.ToString("yyyy-MM-dd HH:mm:ss K")
+      let refs = tot.Sha |> commitReferenceMap.ReferencesForCommit |> Seq.sort |> Seq.toArray
+      let isInner = tot.Side = CommitSide.Intern
+      if (isInner |> not) || refs.Length > 0 then
+        // Skip unlabeled internal nodes
+        match tot.Side with
+        | CommitSide.Tip ->
+          cpx $"+ \fg{tot.Sha.Substring(0,8)}\f0  {stamp} "
+        | CommitSide.Tail ->
+          cpx $"- \fo{tot.Sha.Substring(0,8)}\f0  {stamp} "
+        | CommitSide.Intern ->
+          cpx $". \fk{tot.Sha.Substring(0,8)}\f0  \fk{stamp}\f0 "
+        for r in refs do
+          let color, shortname =
+            if r.StartsWith("refs/heads/") then
+              "\fg", r.Substring(11)
+            elif r.StartsWith("refs/remotes/") then
+              "\fc", r.Substring(13)
+            elif r.StartsWith("refs/tags/") then
+              "\fy", ("#" + r.Substring(10))
+            else
+              "\fr", r
+          let color = if isInner then color.ToUpper() else color          
+          cpx $" {color}{shortname}\f0"
+        cp "."
 
   if o.DoTips then
     let fileName = repo.Label + ".tips-tails.csv"
@@ -245,6 +269,57 @@ let private runCommits o =
           let tags = String.Join(" ", foldedRefs.Tags)
           let others = String.Join(" ", foldedRefs.Others)
           csv.WriteLine($"{kind},{tot.Sha.Substring(0,8)},{stamp},{authored},{branches},{remoteBranches},{tags},{others}")
+    fileName |> finishFile
+
+  if o.DoEdges then
+    let fileName = repo.Label + ".edges.csv"
+    let mutable edgecount = 0
+    let mutable externcount = 0
+    do
+      let cmap = commitMap.Commits
+      use csv = fileName |> startFile
+      csv.WriteLine("child,parent,extern,childstamp,parentstamp,separation,time-edge")
+      for child in cmap.Values do
+        for parent in child.Parents do
+          let external = cmap.ContainsKey(parent.Sha) |> not
+          let childStamp = child.Committer.When.ToString("yyyy-MM-dd HH:mm:ss K")
+          let parentStamp = parent.Committer.When.ToString("yyyy-MM-dd HH:mm:ss K")
+          let childShort = child.Sha.Substring(0, 8)
+          let parentShort = parent.Sha.Substring(0, 8)
+          let separation, commontime, pretime, postime = timeSeparation parent.Committer.When child.Committer.When
+          let edgetext = $"{commontime}[{pretime}+{postime}]"
+          csv.WriteLine($"{childShort},{parentShort},{external},{childStamp},{parentStamp},{separation},{edgetext}")
+          edgecount <- edgecount + 1
+          if external then
+            externcount <- externcount + 1
+      ()
+    fileName |> finishFile
+    cp $"Found \fb{edgecount}\f0 inter-commit edges, of which \fc{externcount}\f0 are external"
+
+  if o.DoDump then
+    let graph = new CommitStubGraph(commits)
+    let fileName = repo.Label + ".commits.csv"
+    do
+      use csv = fileName |> startFile
+      csv.WriteLine("commit,stamp,authored,interns,externs,children,sha")
+      for commit in commits do
+        let ok, stub = commit.Sha |> graph.StubMap.TryGetValue
+        if ok then
+          let id = commit.Sha.Substring(0,8)
+          let commitStamp = commit.Committer.When.ToString("yyyy-MM-dd HH:mm:ss K")
+          let authorStamp = commit.Author.When.ToString("yyyy-MM-dd HH:mm:ss K")
+          let internalParentStubs =
+            stub.Parents
+            |> Seq.where (fun cs -> cs.Connected)
+            |> Seq.toArray
+          let externalParentStubs =
+            stub.Parents
+            |> Seq.where (fun cs -> cs.Connected |> not)
+            |> Seq.toArray
+          // Note that children are always 'connected', no need to prepare anything
+          csv.WriteLine($"{id},{commitStamp},{authorStamp},{internalParentStubs.Length},{externalParentStubs.Length},{stub.Children.Count},{commit.Sha}")
+        else
+          cp $"\foCommit \fr{commit.Sha}\fo not found in graph\f0."
     fileName |> finishFile
 
   0
