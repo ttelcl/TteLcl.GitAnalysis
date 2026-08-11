@@ -26,6 +26,8 @@ let rec run arglist =
     rest |> AppReferences.run
   | "commits" :: rest ->
     rest |> AppCommits.run
+  | "chain" :: rest ->
+    rest |> AppChain.run
   | x :: _ ->
     cp $"\frUnknown command \f0'\fy{x}\f0'"
     1

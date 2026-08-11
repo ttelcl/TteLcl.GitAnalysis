@@ -27,7 +27,7 @@ public class CommitReferenceMap
     _map = new Dictionary<string, Commit>();
     foreach(Reference reference in references)
     {
-      var commit = ResolveReferenceToCommit(reference);
+      var commit = reference.TryResolveToCommit();
       if(commit != null)
       {
         _map[reference.CanonicalName] = commit;
@@ -83,21 +83,5 @@ public class CommitReferenceMap
       _map
       .GroupBy(kvp => kvp.Value.Sha, kvp => kvp.Key)
       .ToDictionary(group => group.Key, group => (IReadOnlyList<string>)group.ToList());
-  }
-
-  private Commit? ResolveReferenceToCommit(Reference r)
-  {
-    var dr = r.ResolveToDirectReference();
-    var commit =
-      dr.Target switch {
-        Commit c1 => c1,
-        TagAnnotation ta =>
-          ta.Target switch {
-            Commit c2 => c2,
-            _ => null // give up; too complex to bother
-          },
-        _ => null // unrecognized
-      };
-    return commit;
   }
 }

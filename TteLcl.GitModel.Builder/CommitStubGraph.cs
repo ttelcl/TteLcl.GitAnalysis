@@ -73,6 +73,86 @@ public class CommitStubGraph
   }
 
   /// <summary>
+  /// Return commits in the child direction for connected stubs with precisely one child,
+  /// including <paramref name="stub"/> itself.
+  /// </summary>
+  /// <param name="stub">
+  /// The stub to use as starting point. Passing null returns an empty sequence.
+  /// </param>
+  /// <returns></returns>
+  public IEnumerable<Commit> ChildChain(CommitStub? stub)
+  {
+    if(stub==null)
+    {
+      yield break;
+    }
+    while(stub.Target != null && stub.Children.Count == 1)
+    {
+      yield return stub.Target;
+      stub = stub.Children.First();
+    }
+    if(stub != null && stub.Target != null && stub.Children.Count != 1)
+    {
+      yield return stub.Target;
+    }
+  }
+
+  /// <summary>
+  /// Return commits in the child direction for connected stubs with precisely one child,
+  /// including the commit indicated by <paramref name="sha"/> itself.
+  /// </summary>
+  /// <param name="sha">
+  /// The full commit identifier for the starting commit. If not found, an empty
+  /// sequence is returned.
+  /// </param>
+  /// <returns></returns>
+  public IEnumerable<Commit> ChildChain(string sha)
+  {
+    var stub = _stubMap.TryGetValue(sha, out var child) ? child : null;
+    return ChildChain(stub);
+  }
+
+  /// <summary>
+  /// Return commits in the parent direction for connected stubs with precisely one parent,
+  /// including <paramref name="stub"/> itself.
+  /// </summary>
+  /// <param name="stub">
+  /// The stub to use as starting point. Passing null returns an empty sequence.
+  /// </param>
+  /// <returns></returns>
+  public IEnumerable<Commit> ParentChain(CommitStub? stub)
+  {
+    if(stub==null)
+    {
+      yield break;
+    }
+    while(stub.Target != null && stub.Parents.Count == 1)
+    {
+      yield return stub.Target;
+      stub = stub.Parents.First();
+    }
+    if(stub != null && stub.Target != null && stub.Parents.Count != 1)
+    {
+      yield return stub.Target;
+    }
+  }
+
+  /// <summary>
+  /// Return commits in the parent direction for connected stubs with precisely one parent,
+  /// including the commit indicated by <paramref name="sha"/> itself.
+  /// </summary>
+  /// <param name="sha">
+  /// The full commit identifier for the starting commit. If not found, an empty
+  /// sequence is returned.
+  /// </param>
+  /// <returns></returns>
+  public IEnumerable<Commit> ParentChain(string sha)
+  {
+    var stub = _stubMap.TryGetValue(sha, out var child) ? child : null;
+    return ParentChain(stub);
+  }
+
+  /// <summary>
   /// Get a <see cref="CommitStub"/> by its id
   /// </summary>
   /// <param name="sha"></param>

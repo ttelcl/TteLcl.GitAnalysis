@@ -53,6 +53,16 @@ let usage focus =
     cp "  \fg-i \fcinclude\f0    A glob expression to include (e.g. '\fg-i \fcrefs/heads/*\f0' to include all local branches)"
     cp "  \fg-x \fcexclude\f0    A glob expression to exclude (e.g. '\fg-x \fcrefs/remotes/origin/*\f0' to exclude all commits on remote branches)"
     cp ""
+  if showSection "chain" then
+    cp "\fogitinfo \fychain\f0 [\fg-repo \fcpath\f0] {[\fg-from\f0|\fg-to\f0|\fg-both\f0] \fccommit\f0}"
+    cp "   List the chain of 1-child or 1-parent commits leading up to or up from or both the commit"
+  if showDetail "chain" then
+    cp "  \fx      \fccommit\f0  Commits can be specified as commit ids or refs"
+    cp "  \fg-repo \fcpath\f0    Any path within the target repository. Defaults to the current directory"
+    cp "  \fg-from \fccommit\f0  Walk up along children of \fccommit\f0 until the first commit that has not exactly 1 child"
+    cp "  \fg-to   \fccommit\f0  Walk down along parents of \fccommit\f0 until the first commit that has not exactly 1 parent"
+    cp "  \fg-both \fccommit\f0  Combine \fg-from\f0 and \fg-to\f0, walking the commit chain on both sides"
+
   cp "\fg-v               \f0Verbose mode"
 
 
