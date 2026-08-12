@@ -103,47 +103,54 @@ let private runChainWalk ctx walk =
   match commitOption with
   | Some commit ->
     let sha = commit.Sha
+    let ok, stub = commit.Sha |> graph.StubMap.TryGetValue
     let shortSha = sha.Substring(0, 8)
-    cp $"Tracing \fg{shortSha}\f0."
-    let childChain =
-      if walk.UpChildren then
-        graph.ChildChain(sha) 
-        |> Seq.where (fun c -> c.Sha <> sha)
-        |> Seq.toList
-        |> List.rev
-      else
-        []
-    let parentChain =
-      if walk.DownParents then
-        graph.ParentChain(commit.Sha)
-        |> Seq.where (fun c -> c.Sha <> sha)
-        |> Seq.toList
-      else
-        []
-    let chain =
-      childChain @ (commit :: parentChain)
-    cp $"Chain size {childChain.Length} + 1 + {parentChain.Length} = \fb{chain.Length}\f0."
-    let filetag =
-      if chain.Length = 0 then
-        "" // should never happen
-      elif chain.Length = 1 then
-        let headtail = chain |> List.head
-        headtail.Sha.Substring(0, 8)
-      else
-        let head = chain |> List.head
-        let tail = chain |> List.last
-        $"{tail.Sha.Substring(0,8)}-{head.Sha.Substring(0,8)}"
-    let fileName = $"{repo.Label}.{filetag}.chain.csv"
-    do
-      use csv = fileName |> startFile
-      csv.WriteLine("id,committed,authored,refs")
-      for commit in chain do
-        let sha = commit.Sha.Substring(0, 8)
-        let committed = commit.Committer.When.ToString("yyyy-MM-dd HH:mm:ss K")
-        let authored = commit.Author.When.ToString("yyyy-MM-dd HH:mm:ss K")
-        let refs = commit.Sha |> getRefs
-        csv.WriteLine($"{sha},{committed},{authored},{refs}")
-    fileName |> finishFile
+    if ok then
+      cp $"Tracing \fg{shortSha}\f0."
+      let childChain =
+        if walk.UpChildren then
+          graph.ChildStubChain(sha) 
+          |> Seq.where (fun c -> c.Sha <> sha)
+          |> Seq.toList
+          |> List.rev
+        else
+          []
+      let parentChain =
+        if walk.DownParents then
+          graph.ParentStubChain(commit.Sha)
+          |> Seq.where (fun c -> c.Sha <> sha)
+          |> Seq.toList
+        else
+          []
+      let chain =
+        childChain @ (stub :: parentChain)
+      cp $"Chain size {childChain.Length} + 1 + {parentChain.Length} = \fb{chain.Length}\f0."
+      let filetag =
+        if chain.Length = 0 then
+          "" // should never happen
+        elif chain.Length = 1 then
+          let headtail = chain |> List.head
+          headtail.Sha.Substring(0, 8)
+        else
+          let head = chain |> List.head
+          let tail = chain |> List.last
+          $"{tail.Sha.Substring(0,8)}-{head.Sha.Substring(0,8)}"
+      let fileName = $"{repo.Label}.{filetag}.chain.csv"
+      do
+        use csv = fileName |> startFile
+        csv.WriteLine("id,committed,authored,parents,children,refs")
+        for stub in chain do
+          let commit = stub.Target
+          let sha = commit.Sha.Substring(0, 8)
+          let committed = commit.Committer.When.ToString("yyyy-MM-dd HH:mm:ss K")
+          let authored = commit.Author.When.ToString("yyyy-MM-dd HH:mm:ss K")
+          let refs = commit.Sha |> getRefs
+          let childCount = stub.Children.Count
+          let parentCount = stub.Parents.Count
+          csv.WriteLine($"{sha},{committed},{authored},{parentCount},{childCount},{refs}")
+      fileName |> finishFile
+    else
+      cp $"\frCommit \fo{shortSha}\fr not found\f0."
   | None ->
     ()
 

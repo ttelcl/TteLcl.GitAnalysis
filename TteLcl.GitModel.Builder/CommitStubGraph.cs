@@ -80,7 +80,7 @@ public class CommitStubGraph
   /// The stub to use as starting point. Passing null returns an empty sequence.
   /// </param>
   /// <returns></returns>
-  public IEnumerable<Commit> ChildChain(CommitStub? stub)
+  public IEnumerable<CommitStub> ChildStubChain(CommitStub? stub)
   {
     if(stub==null)
     {
@@ -88,13 +88,41 @@ public class CommitStubGraph
     }
     while(stub.Target != null && stub.Children.Count == 1)
     {
-      yield return stub.Target;
+      yield return stub;
       stub = stub.Children.First();
     }
     if(stub != null && stub.Target != null && stub.Children.Count != 1)
     {
-      yield return stub.Target;
+      yield return stub;
     }
+  }
+
+  /// <summary>
+  /// Return commits in the child direction for connected stubs with precisely one child,
+  /// including the commit indicated by <paramref name="sha"/> itself.
+  /// </summary>
+  /// <param name="sha">
+  /// The full commit identifier for the starting commit. If not found, an empty
+  /// sequence is returned.
+  /// </param>
+  /// <returns></returns>
+  public IEnumerable<CommitStub> ChildStubChain(string sha)
+  {
+    var stub = _stubMap.TryGetValue(sha, out var child) ? child : null;
+    return ChildStubChain(stub);
+  }
+
+  /// <summary>
+  /// Return commits in the child direction for connected stubs with precisely one child,
+  /// including <paramref name="stub"/> itself.
+  /// </summary>
+  /// <param name="stub">
+  /// The stub to use as starting point. Passing null returns an empty sequence.
+  /// </param>
+  /// <returns></returns>
+  public IEnumerable<Commit> ChildChain(CommitStub? stub)
+  {
+    return ChildStubChain(stub).Select(stub => stub.Target!);
   }
 
   /// <summary>
@@ -120,7 +148,7 @@ public class CommitStubGraph
   /// The stub to use as starting point. Passing null returns an empty sequence.
   /// </param>
   /// <returns></returns>
-  public IEnumerable<Commit> ParentChain(CommitStub? stub)
+  public IEnumerable<CommitStub> ParentStubChain(CommitStub? stub)
   {
     if(stub==null)
     {
@@ -128,13 +156,41 @@ public class CommitStubGraph
     }
     while(stub.Target != null && stub.Parents.Count == 1)
     {
-      yield return stub.Target;
+      yield return stub;
       stub = stub.Parents.First();
     }
     if(stub != null && stub.Target != null && stub.Parents.Count != 1)
     {
-      yield return stub.Target;
+      yield return stub;
     }
+  }
+
+  /// <summary>
+  /// Return commits in the parent direction for connected stubs with precisely one parent,
+  /// including the commit indicated by <paramref name="sha"/> itself.
+  /// </summary>
+  /// <param name="sha">
+  /// The full commit identifier for the starting commit. If not found, an empty
+  /// sequence is returned.
+  /// </param>
+  /// <returns></returns>
+  public IEnumerable<CommitStub> ParentStubChain(string sha)
+  {
+    var stub = _stubMap.TryGetValue(sha, out var child) ? child : null;
+    return ParentStubChain(stub);
+  }
+
+  /// <summary>
+  /// Return commits in the parent direction for connected stubs with precisely one parent,
+  /// including <paramref name="stub"/> itself.
+  /// </summary>
+  /// <param name="stub">
+  /// The stub to use as starting point. Passing null returns an empty sequence.
+  /// </param>
+  /// <returns></returns>
+  public IEnumerable<Commit> ParentChain(CommitStub? stub)
+  {
+    return ParentStubChain(stub).Select(stub => stub.Target!);
   }
 
   /// <summary>
