@@ -114,7 +114,7 @@ let private runChainWalk ctx walk =
       else
         []
     let parentChain =
-      if walk.UpChildren then
+      if walk.DownParents then
         graph.ParentChain(commit.Sha)
         |> Seq.where (fun c -> c.Sha <> sha)
         |> Seq.toList
