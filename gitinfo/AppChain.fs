@@ -123,7 +123,17 @@ let private runChainWalk ctx walk =
     let chain =
       childChain @ (commit :: parentChain)
     cp $"Chain size {childChain.Length} + 1 + {parentChain.Length} = \fb{chain.Length}\f0."
-    let fileName = $"{repo.Label}.{shortSha}.chain.csv"
+    let filetag =
+      if chain.Length = 0 then
+        "" // should never happen
+      elif chain.Length = 1 then
+        let headtail = chain |> List.head
+        headtail.Sha.Substring(0, 8)
+      else
+        let head = chain |> List.head
+        let tail = chain |> List.last
+        $"{tail.Sha.Substring(0,8)}-{head.Sha.Substring(0,8)}"
+    let fileName = $"{repo.Label}.{filetag}.chain.csv"
     do
       use csv = fileName |> startFile
       csv.WriteLine("id,committed,authored,refs")
