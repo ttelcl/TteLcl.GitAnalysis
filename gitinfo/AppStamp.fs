@@ -113,7 +113,7 @@ let run args =
   match oo with
   | None ->
     cp ""
-    Usage.usage "info"
+    Usage.usage "stamp"
     1
   | Some o ->
     o |> runStamp
