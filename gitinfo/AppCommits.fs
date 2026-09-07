@@ -19,6 +19,7 @@ type private Options = {
   DoTips: bool
   DoShow: bool
   DoEdges: bool
+  DoGraph: bool
   IncludeGlobs: string list
   ExcludeGlobs: string list
 }
@@ -50,6 +51,8 @@ let private parseArgs args =
     | "-edges" :: rest
     | "-edge" :: rest ->
       rest |> parseMore {o with DoEdges = true}
+    | "-graph" :: rest ->
+      rest |> parseMore {o with DoGraph = true}
     | "-i" :: includeGlob :: rest ->
       rest |> parseMore {o with IncludeGlobs = includeGlob :: o.IncludeGlobs}
     | "-x" :: excludeGlob :: rest ->
@@ -66,6 +69,7 @@ let private parseArgs args =
     DoTips = false
     DoShow = false
     DoEdges = false
+    DoGraph = false
     IncludeGlobs = []
     ExcludeGlobs = []
   }
@@ -151,6 +155,24 @@ let private classifyReference (refname: string) =
   else
     refname |> ClassifiedRef.Other
 
+type private CommitData = {
+  RepoLabel: string
+  Commits: Commit array
+  CmtMap: CommitMap
+  RefMap: CommitReferenceMap
+}
+
+let private runCommitsGraph commitData =
+  let commits = commitData.Commits
+  let commitmap = commitData.CmtMap
+  let refmap = commitData.RefMap
+  let fileName = commitData.RepoLabel + ".graph.json"
+  do
+    use w = fileName |> startFile
+    cp "\fr'\fo-graph\fr' not yet implemented\f0."
+    "{}" |> w.WriteLine
+  fileName |> finishFile
+
 let private runCommits o =
   use repo = new GitRepo(o.Witness)
   let filter = new CommitFilter();
@@ -172,6 +194,13 @@ let private runCommits o =
 
   let commitMap = commits |> CommitMap.FromCommits
   let commitReferenceMap = new CommitReferenceMap(repo.Repo.Refs)
+
+  let commitData = {
+    RepoLabel = repo.Label
+    Commits = commits
+    CmtMap = commitMap
+    RefMap = commitReferenceMap
+  }
 
   let tips = commitMap.TipIds()
   let tails = commitMap.TailIds()
@@ -321,6 +350,9 @@ let private runCommits o =
         else
           cp $"\foCommit \fr{commit.Sha}\fo not found in graph\f0."
     fileName |> finishFile
+
+  if o.DoGraph then
+    commitData |> runCommitsGraph
 
   0
 

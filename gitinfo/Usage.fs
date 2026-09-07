@@ -40,7 +40,8 @@ let usage focus =
     cp "  \fg-dump\fx\f0         Dump references to a CSV file (name derived from the repository)"
     cp ""
   if showSection "commits" then
-    cp "\fogitinfo \fycommits\f0 [\fg-repo \fcpath\f0] {\fg-i \fcinclude-glob\f0} {\fg-x \fcexclude-glob\f0} [\fg-dump\f0] [\fg-tips\f0] [\fg-edges\f0] [\fg-show\f0] [\fg-list \fcn\f0]"
+    cpx "\fogitinfo \fycommits\f0 [\fg-repo \fcpath\f0] {\fg-i \fcinclude-glob\f0} {\fg-x \fcexclude-glob\f0}"
+    cp " [\fg-dump\f0] [\fg-tips\f0] [\fg-edges\f0] [\fg-graph\f0] [\fg-show\f0] [\fg-list \fcn\f0]"
     cp "   Return information on commits in the git repository matching the include and exclude criteria."
     cp "   Without any \fg-i\f0 options, commits on the current branch are selected."
   if showDetail "commits" then
@@ -48,6 +49,7 @@ let usage focus =
     cp "  \fg-dump\fx\f0         Dump per-commit information to a CSV file (name derived from the repository)"
     cp "  \fg-edges\fx\f0        Dump a CSV file describing the inter-commit edges (name derived from the repository)"
     cp "  \fg-tips\fx\f0         Dump information on tip and tail commits to a CSV file (name derived from the repository)"
+    cp "  \fg-graph\f0\fx        Dump a graphops.exe compatible graph model of the selected commits and their edges (name derived from the repository)"
     cp "  \fg-show\fx\f0         Show relevant commits on console"
     cp "  \fg-list \fcn\f0       List the first \fcn\f0 matching commits on the console"
     cp "  \fg-i \fcinclude\f0    A glob expression to include (e.g. '\fg-i \fcrefs/heads/*\f0' to include all local branches)"
