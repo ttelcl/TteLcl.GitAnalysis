@@ -4,6 +4,9 @@ open System
 open System.IO
 open System.Text
 
+open Newtonsoft.Json
+open Newtonsoft.Json.Linq
+
 open LibGit2Sharp
 
 open TteLcl.GitModel
@@ -20,6 +23,10 @@ type private Options = {
   DoShow: bool
   DoEdges: bool
   DoGraph: bool
+  IncludeName: bool
+  IncludeEmail: bool
+  IncludeMessage: bool
+  IncludeSha: bool
   IncludeGlobs: string list
   ExcludeGlobs: string list
 }
@@ -53,6 +60,18 @@ let private parseArgs args =
       rest |> parseMore {o with DoEdges = true}
     | "-graph" :: rest ->
       rest |> parseMore {o with DoGraph = true}
+    | "-name" :: rest
+    | "-names" :: rest ->
+      rest |> parseMore {o with IncludeName = true}
+    | "-email" :: rest
+    | "-emails" :: rest ->
+      rest |> parseMore {o with IncludeEmail = true}
+    | "-nomessage" :: rest 
+    | "-no-message" :: rest ->
+      rest |> parseMore {o with IncludeMessage = false}
+    | "-nosha" :: rest 
+    | "-no-sha" :: rest ->
+      rest |> parseMore {o with IncludeSha = false}
     | "-i" :: includeGlob :: rest ->
       rest |> parseMore {o with IncludeGlobs = includeGlob :: o.IncludeGlobs}
     | "-x" :: excludeGlob :: rest ->
@@ -70,6 +89,10 @@ let private parseArgs args =
     DoShow = false
     DoEdges = false
     DoGraph = false
+    IncludeName = false
+    IncludeEmail = false
+    IncludeMessage = true
+    IncludeSha = true
     IncludeGlobs = []
     ExcludeGlobs = []
   }
@@ -162,15 +185,66 @@ type private CommitData = {
   RefMap: CommitReferenceMap
 }
 
-let private runCommitsGraph commitData =
+let private runCommitsGraph o commitData =
   let commits = commitData.Commits
   let commitmap = commitData.CmtMap
   let refmap = commitData.RefMap
   let fileName = commitData.RepoLabel + ".graph.json"
+  let commitId (commit: Commit) =
+    commit.Sha.Substring(0, 8)
+  let getUser (signature: Signature) =
+    match o.IncludeName, o.IncludeEmail with
+    | false, false -> None
+    | true, false -> signature.Name |> Some
+    | false, true -> signature.Email |> Some
+    | true, true -> $"{signature.Name} <{signature.Email}>" |> Some
+  let commitNode (commit: Commit) =
+    let node = new JObject()
+    if o.IncludeMessage then
+      node.Add("message", commit.MessageShort)
+    if o.IncludeSha then
+      node.Add("sha", commit.Sha)
+    if commit.Committer <> null then
+      node.Add("committed", commit.Committer.When.ToString("yyyy-MM-dd HH:mm:ss K"))
+      match commit.Committer |> getUser with
+      | Some name -> node.Add("committer", name)
+      | None -> ()
+    if commit.Author <> null then
+      if commit.Committer = null || commit.Committer.When <> commit.Author.When || commit.Committer.Name <> commit.Author.Name then
+        node.Add("authored", commit.Author.When.ToString("yyyy-MM-dd HH:mm:ss K"))
+        match commit.Author |> getUser with
+        | Some name -> node.Add("author", name)
+        | None -> ()
+    let targets = new JObject()
+    let keytags = new JObject()
+    let externals = new JArray()
+    for parent in commit.Parents do
+      if parent.Sha |> commitmap.Contains then
+        targets.Add(parent |> commitId, new JObject())
+      else
+        parent |> commitId |> externals.Add
+    node.Add("targets", targets)
+    let references = commit.Sha |> refmap.ReferencesForCommit
+    if references.Count > 0 then
+      let refs = new JArray()
+      for reference in references do
+        reference |> refs.Add
+      keytags.Add("labels", refs)
+    if externals.Count > 0 then
+      keytags.Add("extern", externals)
+    if keytags.Count > 0 then
+      node.Add("keytags", keytags)
+    node
   do
     use w = fileName |> startFile
-    cp "\fr'\fo-graph\fr' not yet implemented\f0."
-    "{}" |> w.WriteLine
+    let nodes = new JObject()
+    for commit in commits do
+      let node = commit |> commitNode
+      nodes.Add(commit |> commitId, node)
+    let graph = new JObject()
+    graph.Add("nodes", nodes)
+    let json = JsonConvert.SerializeObject(graph, Formatting.Indented)
+    json |> w.WriteLine
   fileName |> finishFile
 
 let private runCommits o =
@@ -352,7 +426,7 @@ let private runCommits o =
     fileName |> finishFile
 
   if o.DoGraph then
-    commitData |> runCommitsGraph
+    commitData |> runCommitsGraph o
 
   0
 
