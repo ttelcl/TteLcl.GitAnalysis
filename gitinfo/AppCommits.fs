@@ -29,6 +29,7 @@ type private Options = {
   IncludeSha: bool
   IncludeGlobs: string list
   ExcludeGlobs: string list
+  Label: string
 }
 
 let private parseArgs args =
@@ -72,6 +73,8 @@ let private parseArgs args =
     | "-nosha" :: rest 
     | "-no-sha" :: rest ->
       rest |> parseMore {o with IncludeSha = false}
+    | "-label" :: label :: rest ->
+      rest |> parseMore {o with Label = label}
     | "-i" :: includeGlob :: rest ->
       rest |> parseMore {o with IncludeGlobs = includeGlob :: o.IncludeGlobs}
     | "-x" :: excludeGlob :: rest ->
@@ -95,6 +98,7 @@ let private parseArgs args =
     IncludeSha = true
     IncludeGlobs = []
     ExcludeGlobs = []
+    Label = null
   }
 
 type private CommitSide =
@@ -249,6 +253,8 @@ let private runCommitsGraph o commitData =
 
 let private runCommits o =
   use repo = new GitRepo(o.Witness)
+  if o.Label |> String.IsNullOrEmpty |> not then
+    repo.Label <- o.Label
   let filter = new CommitFilter();
   if o.IncludeGlobs |> List.isEmpty |> not then
     let includes =
