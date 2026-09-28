@@ -299,24 +299,21 @@ let private runCommitsJson o commitData =
         | Some name -> node.Add("author", name)
         | None -> ()
     let targets = new JArray()
-    let keytags = new JObject()
     let externals = new JArray()
     for parent in commit.Parents do
       if parent.Sha |> commitmap.Contains then
         targets.Add(parent |> commitId)
       else
         parent |> commitId |> externals.Add
-    node.Add("targets", targets)
+    node.Add("parents", targets)
     let references = commit.Sha |> refmap.ReferencesForCommit
     if references.Count > 0 then
       let refs = new JArray()
       for reference in references do
         reference |> refs.Add
-      keytags.Add("labels", refs)
+      node.Add("refs", refs)
     if externals.Count > 0 then
-      keytags.Add("extern", externals)
-    if keytags.Count > 0 then
-      node.Add("keytags", keytags)
+      node.Add("prerequisites", externals)
     node
   do
     use w = fileName |> startFile
