@@ -15,6 +15,13 @@ open TteLcl.GitModel.Builder
 open ColorPrint
 open CommonTools
 
+type UserText =
+  | NoUser
+  | UserOnly
+  | EmailOnly
+  | UserAndEmail
+  | UserHash
+
 type private Options = {
   Witness: string
   TagLength: int
@@ -25,8 +32,7 @@ type private Options = {
   DoEdges: bool
   DoGraph: bool
   DoJson: bool
-  IncludeName: bool
-  IncludeEmail: bool
+  UserStyle: UserText
   IncludeMessage: bool
   IncludeSha: bool
   IncludeGlobs: string list
@@ -67,10 +73,22 @@ let private parseArgs args =
       rest |> parseMore {o with DoJson = true}
     | "-name" :: rest
     | "-names" :: rest ->
-      rest |> parseMore {o with IncludeName = true}
+      let newStyle =
+        match o.UserStyle with
+        | UserText.EmailOnly | UserText.UserAndEmail ->
+          UserText.UserAndEmail
+        | _ -> UserText.UserOnly
+      rest |> parseMore {o with UserStyle = newStyle}
     | "-email" :: rest
     | "-emails" :: rest ->
-      rest |> parseMore {o with IncludeEmail = true}
+      let newStyle =
+        match o.UserStyle with
+        | UserText.UserOnly | UserText.UserAndEmail ->
+          UserText.UserAndEmail
+        | _ -> UserText.EmailOnly
+      rest |> parseMore {o with UserStyle = newStyle}
+    | "-anon" :: rest | "-hash" :: rest | "-userhash" :: rest ->
+      rest |> parseMore {o with UserStyle = UserText.UserHash}
     | "-nomessage" :: rest 
     | "-no-message" :: rest ->
       rest |> parseMore {o with IncludeMessage = false}
@@ -106,8 +124,7 @@ let private parseArgs args =
     DoEdges = false
     DoGraph = false
     DoJson = false
-    IncludeName = false
-    IncludeEmail = false
+    UserStyle = UserText.NoUser
     IncludeMessage = true
     IncludeSha = true
     IncludeGlobs = []
@@ -178,17 +195,6 @@ let private foldRefs refs =
     Others = folded.Others |> List.rev
   }
 
-
-let private abbreviateReference (refname: string) =
-  if refname.StartsWith("refs/heads/") then
-    "b:" + refname.Substring(11)
-  elif refname.StartsWith("refs/remotes/") then
-    "r:" + refname.Substring(13)
-  elif refname.StartsWith("refs/tags/") then
-    "t:" + refname.Substring(10)
-  else
-    refname
-
 let private classifyReference (refname: string) =
   if refname.StartsWith("refs/heads/") then
     refname.Substring(11) |> ClassifiedRef.Branch
@@ -206,18 +212,31 @@ type private CommitData = {
   RefMap: CommitReferenceMap
 }
 
+let private userNameAnon = Anonymizer.anonymizer true 3
+
+let private emailNameAnon = Anonymizer.anonymizer false 8
+
+let private userSignatureAnon (signature: Signature) =
+  $"{signature.Name |> userNameAnon}-{signature.Email |> emailNameAnon}"
+
+let private getUser o (signature:  Signature) : string option =
+  if signature = null then
+    None
+  else
+    match o.UserStyle with
+    | UserText.NoUser -> None
+    | UserText.UserOnly -> signature.Name |> Some
+    | UserText.EmailOnly -> signature.Email |> Some
+    | UserText.UserAndEmail -> $"{signature.Name} <{signature.Email}>" |> Some
+    | UserText.UserHash -> signature |> userSignatureAnon |> Some
+
 let private runCommitsGraph o commitData =
   let commits = commitData.Commits
   let commitmap = commitData.CmtMap
   let refmap = commitData.RefMap
   let fileName = commitData.RepoLabel + ".graph.json"
   let commitId commit = commit |> commitTag o
-  let getUser (signature: Signature) =
-    match o.IncludeName, o.IncludeEmail with
-    | false, false -> None
-    | true, false -> signature.Name |> Some
-    | false, true -> signature.Email |> Some
-    | true, true -> $"{signature.Name} <{signature.Email}>" |> Some
+  let getUser (signature: Signature) = signature |> getUser o
   let commitNode (commit: Commit) =
     let node = new JObject()
     if o.IncludeMessage then
@@ -273,16 +292,11 @@ let private runCommitsJson o commitData =
   let refmap = commitData.RefMap
   let fileName = commitData.RepoLabel + ".commits.json"
   let commitId commit = commit |> commitTag o
-  let getUser (signature: Signature) =
-    match o.IncludeName, o.IncludeEmail with
-    | false, false -> None
-    | true, false -> signature.Name |> Some
-    | false, true -> signature.Email |> Some
-    | true, true -> $"{signature.Name} <{signature.Email}>" |> Some
+  let getUser (signature: Signature) = signature |> getUser o
   let commitNode (commit: Commit) =
     let node = new JObject()
     let id = commit |> commitId
-    node.Add("id", id)
+    node.Add("key", id)
     if o.IncludeMessage then
       node.Add("message", commit.MessageShort)
     if o.IncludeSha then

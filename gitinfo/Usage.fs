@@ -56,6 +56,7 @@ let usage focus =
     cp "  \fg-json\f0\fx         Dump a JSON model of the selected commits and their edges (name derived from the repository or \fg-label\f0)"
     cp "    \fg-name\f0\fx       Include user names of author and/or committer in \fg-graph\f0 or \fg-json\f0 output."
     cp "    \fg-email\f0\fx      Include user emails of author and/or committer in \fg-graph\f0 or \fg-json\f0 output."
+    cp "    \fg-anon\f0\fx       Include user names and emails in an anonymyzed form. If given, \fg-name\f0 and \fg-email\f0 are ignored."
     cp "    \fg-no-message\f0\fx Exclude the commit message header from \fg-graph\f0 or \fg-json\f0 output."
     cp "    \fg-no-sha\f0\fx     Exclude the full commit SHA from \fg-graph\f0 or \fg-json\f0 output."
     cp "  \fg-show\fx\f0         Show relevant commits on console"

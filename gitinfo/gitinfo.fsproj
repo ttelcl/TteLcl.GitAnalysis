@@ -15,6 +15,7 @@
     <Compile Include="CommonTools.fs" />
     <Compile Include="PrintUtils.fs" />
     <Compile Include="ExceptionTool.fs" />
+    <Compile Include="Anonymizer.fs" />
     <Compile Include="Usage.fs" />
     <Compile Include="AppHash.fs" />
     <Compile Include="AppStamp.fs" />
