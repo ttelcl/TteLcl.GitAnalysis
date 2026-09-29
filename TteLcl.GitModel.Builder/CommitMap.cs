@@ -84,6 +84,24 @@ public class CommitMap
   }
 
   /// <summary>
+  /// Calculate the set of commits in this <see cref="CommitMap"/> that have no
+  /// parents whatsoever (neither internal nor external)
+  /// </summary>
+  /// <returns></returns>
+  public HashSet<string> RootIds()
+  {
+    var rootset = new HashSet<string>();
+    foreach(var commit in _map.Values)
+    {
+      if(!commit.Parents.Any())
+      {
+        rootset.Add(commit.Sha);
+      }
+    }
+    return rootset;
+  }
+
+  /// <summary>
   /// Add (or replace) an entry
   /// </summary>
   /// <param name="commit"></param>

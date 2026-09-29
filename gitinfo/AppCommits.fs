@@ -398,11 +398,12 @@ let private runCommits o =
 
     let tips = commitMap.TipIds()
     let tails = commitMap.TailIds()
+    let roots = commitMap.RootIds()
     let inners =
       commitMap.Commits.Keys
       |> Seq.where (fun sha -> sha |> tips.Contains |> not)
       |> Seq.toArray
-    cp $"Found \fg{tips.Count}\f0 tips and \fo{tails.Count}\f0 tails and \fb{inners.Length}\f0 in-betweens"
+    cp $"Found \fg{tips.Count}\f0 tips, \fc{roots.Count}\f0 roots, \fo{tails.Count}\f0 tails, and \fb{inners.Length}\f0 in-betweens"
 
     let commitSide commitId =
       if commitId |> tips.Contains then
