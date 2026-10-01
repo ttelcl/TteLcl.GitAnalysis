@@ -16,8 +16,11 @@ let usage focus =
   let showDetail section =
     focus = section || focus = "*"
   if showSection "" then
-    cp "\foBrief general description of this application\f0."
-    cp "   Optional: Some more details about the application."
+    cp "\foManage 'scaffold' refs in a git repository\f0."
+    cp "   Scaffold refs are refs that are similar to tags, but are outside the 'usual' ref namespaces, so"
+    cp "   are not used directly by git commands. These can help in keeping commits that have no"
+    cp "   other reference to be kept alive. And they allow such commits to be used in git commands like"
+    cp "   'bundle' that require refs, not commits. Scaffold refs start with '\fyrefs/scaffold/\f0'"
     cp ""
   if showSection "foo" then
     // Summary of the 'foo' command including main arguments
