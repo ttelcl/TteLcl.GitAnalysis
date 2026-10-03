@@ -99,6 +99,68 @@ public class CommitStubGraph
   }
 
   /// <summary>
+  /// Return all commits connected to this graph where <paramref name="predicate"/> returns true,
+  /// but it does not return true for any of the child commits that are connected to this graph.
+  /// </summary>
+  /// <remarks>
+  /// Just to be clear: that includes any such commits that do not have any children connected to
+  /// this graph at all. Or no children whatsoever.
+  /// </remarks>
+  /// <param name="predicate">
+  /// The predicate that returns true for matching commits.
+  /// </param>
+  /// <returns></returns>
+  public IEnumerable<Commit> ConditionalRoots(Func<Commit, bool> predicate)
+  {
+    var candidates =
+      _stubMap.Values
+      .Where(stub => stub.Target != null && predicate(stub.Target!));
+    foreach(var candidate in candidates)
+    {
+      if(!candidate.Parents.Any(parent => parent.Target != null && predicate(parent.Target!)))
+      {
+        yield return candidate.Target!;
+      }
+    }
+  }
+
+  /// <summary>
+  /// Return all tips of the graph
+  /// </summary>
+  /// <returns></returns>
+  public IEnumerable<Commit> AllTips()
+  {
+    var candidates =
+      _stubMap.Values
+      .Where(stub => stub.Target != null);
+    foreach(var candidate in candidates)
+    {
+      if(!candidate.Children.Any(child => child.Target != null))
+      {
+        yield return candidate.Target!;
+      }
+    }
+  }
+
+  /// <summary>
+  /// Return all roots of the graph
+  /// </summary>
+  /// <returns></returns>
+  public IEnumerable<Commit> AllRoots()
+  {
+    var candidates =
+      _stubMap.Values
+      .Where(stub => stub.Target != null);
+    foreach(var candidate in candidates)
+    {
+      if(!candidate.Parents.Any(parent => parent.Target != null))
+      {
+        yield return candidate.Target!;
+      }
+    }
+  }
+
+  /// <summary>
   /// Connect <paramref name="commit"/> to its stub, setting the stub's 
   /// <see cref="CommitStub.Target"/>, adding the stubs for the parents to the list
   /// of <see cref="CommitStub.Parents"/> and for each parent register this stub

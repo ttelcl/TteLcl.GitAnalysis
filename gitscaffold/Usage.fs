@@ -26,10 +26,22 @@ let usage focus =
     cp "\fogitscaffold \fylist\f0 \fg-repo \fcwitness\f0 [\fg-bytime\f0|\fg-byname\f0|\fg-byhash\f0]"
     cp "  List scaffold refs"
   if showDetail "list" then
-    cp "  \fg-repo \fcwitness\f0  Use the repository that file or folder \fcwitness\f0 is in."
-    cp "  \fg-bytime\f0\fx        Sort results by commit time"
-    cp "  \fg-byname\f0\fx        Sort results by ref name"
-    cp "  \fg-byhash\f0\fx        Sort results by commit hash"
+    cp "  \fg-repo \fcwitness\f0    Use the repository that file or folder \fcwitness\f0 is in."
+    cp "  \fg-bytime\f0\fx          Sort results by commit time"
+    cp "  \fg-byname\f0\fx          Sort results by ref name"
+    cp "  \fg-byhash\f0\fx          Sort results by commit hash"
+    cp ""
+  if showSection "slice" then
+    cpx "\fogitscaffold \fyslice\f0 [\fg-repo \fcwitness\f0] [\fg-commit \fcsha\f0|\fg-before \fcyyyy-MM-dd\f0]"
+    cp " [\fg-scaffold \fcgroup\f0]"
+    cp "  Calculate the edge of the set of all commits before a given date, and optionally create scaffolds for those"
+  if showDetail "slice" then
+    cp "  \fg-repo \fcwitness\f0    Use the repository that file or folder \fcwitness\f0 is in. Default: current directory."
+    cp "  \fg-before \fcdate\f0     Slice the commits made before midnight UTC on the given date (in ISO format, yyyy-MM-dd)"
+    cp "  \fg-commit \fcsha\f0      Instead of slicing at a given date, slice at the time of the given commit."
+    cp "  \fx\fx\fx                 That commit itself is included (so: 'before-or-at' instead of 'before')"
+    cp "  \fg-scaffold \fcgroup\f0  Create scaffold refs for the commits at the edge, in the given \fcgroup\f0."
+    cp "  \fx\fx\fx                 Without this option the operation is read-only."
     cp ""
   if showSection "" then
     if focus = "" then

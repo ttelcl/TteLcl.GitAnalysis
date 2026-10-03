@@ -17,6 +17,8 @@ let rec run arglist =
     0  // program return status code to the operating system; 0 == "OK"
   | "list" :: rest ->
     rest |> AppList.run
+  | "slice" :: rest ->
+    rest |> AppSlice.run
   | x :: _ ->
     cp $"\frUnknown command:\f0 '\fy{x}\f0'"
     Usage.usage ""

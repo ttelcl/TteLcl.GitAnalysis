@@ -87,7 +87,7 @@ let private runList o =
       | RefSort.ByRefName ->
         pairs |> Seq.sortBy (fun (k,_) -> k)
       | RefSort.ByCommitStamp ->
-        pairs |> Seq.sortBy (fun (_,v) -> v.Committer.When)
+        pairs |> Seq.sortByDescending (fun (_,v) -> v.Committer.When)
       | RefSort.ByCommitHash ->
         pairs |> Seq.sortBy (fun (_,v) -> v.Sha)
       | RefSort.NoSort ->
@@ -95,7 +95,7 @@ let private runList o =
     let sortedPairs = sortedPairs |> Seq.toArray
     cp $"Found \fb{sortedPairs.Length}\f0 scaffold refs."
     for (refname, commit) in sortedPairs do
-      let stamp = commit.Committer.When.ToString("yyyy-MM-dd HH:mm:ss +K")
+      let stamp = commit.Committer.When.ToString("yyyy-MM-dd HH:mm:ss K")
       let name = refname
       let sha = commit.Sha
       cp $"\fc{stamp} \fy{sha} \fg{name}\f0."

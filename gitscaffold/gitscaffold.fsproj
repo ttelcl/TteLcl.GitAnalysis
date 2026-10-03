@@ -18,6 +18,7 @@
     <Compile Include="Usage.fs" />
     <Compile Include="AppFoo.fs" />
     <Compile Include="AppList.fs" />
+    <Compile Include="AppSlice.fs" />
     <Compile Include="Program.fs" />
     <None Include="README.md" />
   </ItemGroup>
