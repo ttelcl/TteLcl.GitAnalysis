@@ -33,7 +33,7 @@ let usage focus =
     cp ""
   if showSection "slice" then
     cpx "\fogitscaffold \fyslice\f0 [\fg-repo \fcwitness\f0] [\fg-commit \fcsha\f0|\fg-before \fcyyyy-MM-dd\f0]"
-    cp " [\fg-scaffold \fcgroup\f0]"
+    cp " [\fg-scaffold \f0[\fcgroup\f0|\fo-auto\f0]]"
     cp "  Calculate the edge of the set of all commits before a given date, and optionally create scaffolds for those"
   if showDetail "slice" then
     cp "  \fg-repo \fcwitness\f0    Use the repository that file or folder \fcwitness\f0 is in. Default: current directory."
@@ -42,6 +42,7 @@ let usage focus =
     cp "  \fx\fx\fx                 That commit itself is included (so: 'before-or-at' instead of 'before')"
     cp "  \fg-scaffold \fcgroup\f0  Create scaffold refs for the commits at the edge, in the given \fcgroup\f0."
     cp "  \fx\fx\fx                 Without this option the operation is read-only."
+    cp "  \fg-scaffold \fo-auto\f0  Likewise, but derive the group name from the slice date."
     cp ""
   if showSection "" then
     if focus = "" then

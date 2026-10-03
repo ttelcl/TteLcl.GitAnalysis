@@ -14,11 +14,15 @@ type private SliceMethod =
   | ByCommit of string
   | ByDate of DateTimeOffset
 
+type private ScaffoldGroupSource =
+  | Group of string
+  | FromDate
+
 // A type for holding this command's command line options
 type private Options = {
   RepoWitness: string
   Method: SliceMethod option
-  ScaffoldGroup: string option
+  Scaffold: ScaffoldGroupSource option
 }
 
 let private parseArgs args =
@@ -35,12 +39,14 @@ let private parseArgs args =
       None
     | "-repo" :: repo :: rest ->
       rest |> parseMore {o with RepoWitness = repo}
+    | "-scaffold" :: "-auto" :: rest ->
+      rest |> parseMore {o with Scaffold = ScaffoldGroupSource.FromDate |> Some}
     | "-scaffold" :: group :: rest ->
       if group |> Scaffold.isValidScaffoldGroup |> not then
         cp $"\fo'\fy{group}\fo' is not a valid scaffold group name\f0."
         None
       else
-        rest |> parseMore {o with ScaffoldGroup = group |> Some}
+        rest |> parseMore {o with Scaffold = group |> ScaffoldGroupSource.Group |> Some}
     | "-commit" :: sha :: rest ->
       // validate later
       rest |> parseMore {o with Method = sha |> SliceMethod.ByCommit |> Some}
@@ -70,7 +76,7 @@ let private parseArgs args =
   args |> parseMore {
     RepoWitness = Environment.CurrentDirectory
     Method = None
-    ScaffoldGroup = None
+    Scaffold = None
   }
 
 // The actual command execution, taking the parsed Options as argument
@@ -144,9 +150,16 @@ let private runSlice o =
         for root in rootsBefore do
           let stamp = root.Committer.When.ToString("yyyy-MM-dd HH:mm:ss K")
           cp $"  root \fb{stamp} \fy{root.Sha}\f0."
-        match o.ScaffoldGroup with
+        let scaffoldGroup =
+          match o.Scaffold with
+          | None -> None
+          | Some(ScaffoldGroupSource.Group(group)) ->
+            group |> Some
+          | Some(ScaffoldGroupSource.FromDate) ->
+            before.ToUniversalTime().ToString("yyyy-MM-dd") |> Some
+        match scaffoldGroup with
         | Some(group) ->
-          cp "Creating or updating scaffold references:"
+          cp $"Creating or updating scaffold references in group '\fo{group}\f0':"
           for tip in tipsBefore do
             let dr = tip |> Scaffold.createGroupedScaffold group
             cp $" \fmscaffolding\f0 reference to commit \fc{tip.Sha}\f0 : \fg{dr.CanonicalName}\f0."
