@@ -15,9 +15,8 @@ let rec run arglist =
   | [] ->
     Usage.usage ""
     0  // program return status code to the operating system; 0 == "OK"
-  // Example subcommand 'foo'. Replace with your own and add additional subcommands to your liking:
-  | "foo" :: rest ->
-    rest |> AppFoo.run
+  | "list" :: rest ->
+    rest |> AppList.run
   | x :: _ ->
     cp $"\frUnknown command:\f0 '\fy{x}\f0'"
     Usage.usage ""

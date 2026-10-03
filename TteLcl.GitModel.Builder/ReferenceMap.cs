@@ -26,7 +26,7 @@ public sealed class ReferenceMap
   /// <summary>
   /// Create a new <see cref="ReferenceMap"/> and add references from <paramref name="repo"/>
   /// to it. If <paramref name="refPrefix"/> is null or empty, all references are added,
-  /// alse only those whose canonical name starts with the given prefix.
+  /// else only those whose canonical name starts with the given prefix.
   /// </summary>
   /// <param name="repo"></param>
   /// <param name="refPrefix"></param>
