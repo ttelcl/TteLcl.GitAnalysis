@@ -23,6 +23,7 @@ type private RefSort =
 type private Options = {
   RepoWitness: string
   SortOrder: RefSort
+  GroupName: string option
 }
 
 let private parseArgs args =
@@ -43,6 +44,12 @@ let private parseArgs args =
       rest |> parseMore {o with SortOrder = RefSort.ByCommitStamp}
     | "-byname" :: rest ->
       rest |> parseMore {o with SortOrder = RefSort.ByRefName}
+    | "-g" :: groupname :: rest ->
+      if groupname |> Scaffold.isValidScaffoldGroup then
+        rest |> parseMore {o with GroupName = groupname |> Some}
+      else
+        cp $"\fo'\fr{groupname}\fo' is not a valid scaffold group name\f0."
+        None
     | [] ->
       if o.RepoWitness |> String.IsNullOrEmpty then
         cp "\foMissing \fy-repo\fo argument. \f0(Use \fg-repo \fc.\f0 to use the repo of the current directory)"
@@ -55,6 +62,7 @@ let private parseArgs args =
   args |> parseMore {
     RepoWitness = String.Empty
     SortOrder = RefSort.NoSort
+    GroupName = None
   }
 
 // The actual command execution, taking the parsed Options as argument
@@ -65,7 +73,11 @@ let private runList o =
   else
     use gitrepo = new GitRepo(o.RepoWitness)
     cp $"Using repository \fg{gitrepo.Label}\f0 (\fc{gitrepo.GitDbFolder}\f0)"
-    let refs = new ReferenceMap(gitrepo, "refs/scaffold/")
+    let filter =
+      match o.GroupName with
+      | None -> "refs/scaffold/"
+      | Some(group) -> $"refs/scaffold/{group}/"
+    let refs = new ReferenceMap(gitrepo, filter)
     let commitRefMap = new CommitReferenceMap(refs.References.Values)
     let pairs =
       commitRefMap.CommitsByReference

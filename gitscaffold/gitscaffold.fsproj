@@ -14,6 +14,7 @@
     <Compile Include="ColorPrint.fs" />
     <Compile Include="CommonTools.fs" />
     <Compile Include="ExceptionTool.fs" />
+    <Compile Include="Scaffold.fs" />
     <Compile Include="Usage.fs" />
     <Compile Include="AppFoo.fs" />
     <Compile Include="AppList.fs" />
