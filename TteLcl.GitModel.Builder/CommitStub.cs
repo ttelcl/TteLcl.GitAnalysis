@@ -50,7 +50,6 @@ public class CommitStub
   /// </summary>
   public IReadOnlySet<CommitStub> Children => _children;
 
-
   internal void AddChild(CommitStub child)
   {
     _children.Add(child);

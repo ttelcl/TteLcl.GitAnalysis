@@ -39,6 +39,66 @@ public class CommitStubGraph
   public IReadOnlyDictionary<string, CommitStub> StubMap => _stubMap;
 
   /// <summary>
+  /// If this graph contains the <see cref="Commit"/> with the given <paramref name="sha"/> id
+  /// then return it. Otherwise return null (the stub is missing, or the stub is not yet connected)
+  /// </summary>
+  /// <param name="sha"></param>
+  /// <returns></returns>
+  public Commit? FindCommit(string sha)
+  {
+    return _stubMap.TryGetValue(sha, out var commit) ? commit.Target : null;
+  }
+  
+  /// <summary>
+  /// True if this graph contains the commit with the given <paramref name="sha"/> id.
+  /// That is: it contains a stub, and that stub actually contains the <see cref="Commit"/>.
+  /// </summary>
+  /// <param name="sha"></param>
+  /// <returns></returns>
+  public bool ContainsCommit(string sha)
+  {
+    return _stubMap.TryGetValue(sha, out var result) && result.Target != null;
+  }
+
+  /// <summary>
+  /// True if this graph contains a stub for the commit with the given <paramref name="sha"/> id.
+  /// If true, the actual commit may or may not be in this graph. If false the actual commit
+  /// definitely is not in this graph.
+  /// </summary>
+  /// <param name="sha"></param>
+  /// <returns></returns>
+  public bool ContainsStub(string sha)
+  {
+    return _stubMap.ContainsKey(sha);
+  }
+
+  /// <summary>
+  /// Return all commits connected to this graph where <paramref name="predicate"/> returns true,
+  /// but it does not return true for any of the child commits that are connected to this graph.
+  /// </summary>
+  /// <remarks>
+  /// Just to be clear: that includes any such commits that do not have any children connected to
+  /// this graph at all. Or no children whatsoever.
+  /// </remarks>
+  /// <param name="predicate">
+  /// The predicate that returns true for matching commits.
+  /// </param>
+  /// <returns></returns>
+  public IEnumerable<Commit> ConditionalTips(Func<Commit, bool> predicate)
+  {
+    var candidates =
+      _stubMap.Values
+      .Where(stub => stub.Target != null && predicate(stub.Target!));
+    foreach(var candidate in candidates)
+    {
+      if(!candidate.Children.Any(child => child.Target != null && predicate(child.Target!)))
+      {
+        yield return candidate.Target!;
+      }
+    }
+  }
+
+  /// <summary>
   /// Connect <paramref name="commit"/> to its stub, setting the stub's 
   /// <see cref="CommitStub.Target"/>, adding the stubs for the parents to the list
   /// of <see cref="CommitStub.Parents"/> and for each parent register this stub
