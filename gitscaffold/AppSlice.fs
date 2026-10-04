@@ -68,6 +68,9 @@ let private parseArgs args =
       if o.Method |> Option.isNone then
         cp "\foNo \fg-before\fo or \fg-commit\fo specified\f0."
         None
+      elif o.RepoWitness |> GitRepo.FindGitDbFolder |> String.IsNullOrEmpty then
+        cp $"\foInvalid or missing \fg-repo\fo: '\fy{o.RepoWitness}\fo' is not part of any GIT repository\f0." 
+        None
       else
         o |> Some
     | x :: _ ->

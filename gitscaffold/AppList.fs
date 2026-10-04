@@ -51,8 +51,8 @@ let private parseArgs args =
         cp $"\fo'\fr{groupname}\fo' is not a valid scaffold group name\f0."
         None
     | [] ->
-      if o.RepoWitness |> String.IsNullOrEmpty then
-        cp "\foMissing \fy-repo\fo argument. \f0(Use \fg-repo \fc.\f0 to use the repo of the current directory)"
+      if o.RepoWitness |> GitRepo.FindGitDbFolder |> String.IsNullOrEmpty then
+        cp $"\foInvalid or missing \fg-repo\fo: '\fy{o.RepoWitness}\fo' is not part of any GIT repository\f0." 
         None
       else
         o |> Some
@@ -60,7 +60,7 @@ let private parseArgs args =
       cp $"\foUnrecognized argument \f0'\fy{x}\f0'"
       None
   args |> parseMore {
-    RepoWitness = String.Empty
+    RepoWitness = Environment.CurrentDirectory
     SortOrder = RefSort.NoSort
     GroupName = None
   }

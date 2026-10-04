@@ -19,6 +19,12 @@ let rec run arglist =
     rest |> AppList.run
   | "slice" :: rest ->
     rest |> AppSlice.run
+  | "create" :: rest ->
+    rest |> AppCreate.run
+  | "drop" :: rest ->
+    rest |> AppDrop.run
+  | "dropgroup" :: rest ->
+    rest |> AppDropGroup.run
   | x :: _ ->
     cp $"\frUnknown command:\f0 '\fy{x}\f0'"
     Usage.usage ""
