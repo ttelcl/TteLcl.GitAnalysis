@@ -52,23 +52,32 @@ let createGroupedScaffold group (commit:Commit) =
   else
     repo.Refs.Add(refname, commit.Id) :> Reference |> RefCreation.Created
 
+type CommitResolution =
+  | NotFound
+  | Ambiguous of string
+  | Success of Commit
+
 let tryResolveCommit (repo:Repository) (committish: string) =
-  let o = repo.Lookup(committish)
-  match o with
-  | null ->
-    None
-  | :? Commit as commit ->
-    commit |> Some
-  | :? TagAnnotation as annotation ->
-    match annotation.Target with
+  try
+    let o = repo.Lookup(committish)
+    match o with
+    | null ->
+      CommitResolution.NotFound
     | :? Commit as commit ->
-      commit |> Some
+      commit |> CommitResolution.Success
+    | :? TagAnnotation as annotation ->
+      match annotation.Target with
+      | :? Commit as commit ->
+        commit |> CommitResolution.Success
+      | _ ->
+        // give up
+        CommitResolution.NotFound
     | _ ->
-      // give up
-      None
-  | _ ->
-    // unrecognized
-    None
+      // unrecognized
+      CommitResolution.NotFound
+  with
+  | :? AmbiguousSpecificationException as ex ->
+    ex.Message |> CommitResolution.Ambiguous
 
 
 

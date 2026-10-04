@@ -87,8 +87,6 @@ let private runSlice o =
   use gitrepo = new GitRepo(o.RepoWitness)
   let repo = gitrepo.Repo
   cp $"Using repository \fg{gitrepo.Label}\f0 (\fc{gitrepo.GitDbFolder}\f0)"
-  let refs = new ReferenceMap(gitrepo)
-  let commitRefMap = new CommitReferenceMap(refs.References.Values)
   let commits =
     let filter = new CommitFilter();
     let includes =
@@ -113,15 +111,18 @@ let private runSlice o =
     | Some(ByCommit(committish)) ->
       let commitOption = committish |> Scaffold.tryResolveCommit repo
       match commitOption with
-      | None ->
+      | Scaffold.CommitResolution.NotFound ->
         cp $"\foCommit '{committish}\fo' not found (or not resolvable to a commit)\f0."
         None
-      | Some(commit) ->
+      | Scaffold.CommitResolution.Success(commit) ->
         let stamp = commit.Committer.When
         let stampText = stamp.ToString("yyyy-MM-dd HH:mm:ss K")
         cp $"  Resolved commit '\fg{committish}\f0' to \fy{commit.Sha}\f0 (\fc{stampText}\f0)"
         // Add a second to get the "before-or-at" logic (GIT stamps have a granularity of 1 second)
         stamp.AddSeconds(1.0) |> Some
+      | Scaffold.CommitResolution.Ambiguous(message) ->
+        cp $"\foFailed to resolve to a unique commit ('\fy{committish}\fo' has multiple matches)\f0."
+        None
   match beforeOption with
   | None ->
     1

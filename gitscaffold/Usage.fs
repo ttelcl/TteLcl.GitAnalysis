@@ -46,16 +46,14 @@ let usage focus =
     cp "  \fg-scaffold \fo-auto\f0  Likewise, but derive the group name from the slice date."
     cp ""
   if showSection "create" then
-    cpx "\fogitscaffold \fycreate\f0 [\fg-repo \fcwitness\f0] [\fg-g \fcgroup\f0] {\fg-c \fccommit\f0}"
-    cp " {\fg-t \fctag\f0} {\fg-b \fcbranch\f0}"
+    cp "\fogitscaffold \fycreate\f0 [\fg-repo \fcwitness\f0] [\fg-g \fcgroup\f0] {\fg-c \fccommit\f0}"
     cp "  Create ungrouped or grouped scaffolds for the specified commits"
   if showDetail "create" then
     cp "  \fg-repo \fcwitness\f0    Use the repository that file or folder \fcwitness\f0 is in."
     cp "  \fg-g \fcgroup\f0         If present: the group in which to create the scaffolds."
     cp "  \fx\fx\fx                 If not present: the scaffolds created will be of the 'ungrouped' kind"
-    cp "  \fg-c \fccommit\f0        The commit to create a scaffold for. Repeatable."
-    cp "  \fg-t \fctag\f0           The commit to create a scaffold for, specified as an existing tag. Repeatable."
-    cp "  \fg-b \fcbranch\f0        The branch to create a scaffold for, specified as an existing branch. Repeatable."
+    cp "  \fg-c \fccommit\f0        The commit to create a scaffold for. Repeatable. '\fccommit\f0' can be"
+    cp "  \fx\fx\fx                 a commit hash, a branch, a tag, or a full ref path"
     cp ""
   if showSection "drop" then
     cp "\fogitscaffold \fydrop\f0 [\fg-repo \fcwitness\f0] {\fg-c \fccommit\f0} [\fg-g \fcgroup\f0|\fg-all\f0] [\fr-force\f0]"
