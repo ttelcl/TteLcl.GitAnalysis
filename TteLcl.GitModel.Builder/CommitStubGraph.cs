@@ -99,6 +99,57 @@ public class CommitStubGraph
   }
 
   /// <summary>
+  /// Calculate the set of descendents of <paramref name="commit"/> connected to this graph
+  /// (that is: children, children of children, etc. all the way to the tips, optionally
+  /// including <paramref name="commit"/> itself)
+  /// </summary>
+  /// <param name="commit">
+  /// The commit to start from. If this commit is not connected to this graph an empty
+  /// set is returned.
+  /// </param>
+  /// <param name="inclusive">
+  /// If true, <paramref name="commit"/> itself is included in the result set (if it is
+  /// connected to this graph)
+  /// </param>
+  /// <returns>
+  /// A set of the SHA ids of the commits reachable from <paramref name="commit"/> via the
+  /// child axis.
+  /// </returns>
+  public IReadOnlySet<string> Descendants(Commit commit, bool inclusive)
+  {
+    var result = new HashSet<string>();
+    var stub = _stubMap.TryGetValue(commit.Sha, out var s) ? s : null;
+    if(stub != null)
+    {
+      AddDescendants(stub, result);
+      if(!inclusive)
+      {
+        result.Remove(commit.Sha);
+      }
+    }
+    return result;
+  }
+
+  /// <summary>
+  /// Recursively add <paramref name="stub"/> and its children to <paramref name="result"/>
+  /// if it is connected to this graph.
+  /// </summary>
+  /// <param name="stub"></param>
+  /// <param name="result"></param>
+  private void AddDescendants(CommitStub stub, HashSet<string> result)
+  {
+    var commit = stub.Target;
+    if(commit != null && !result.Contains(commit.Sha)) // is it connected and not already in the result?
+    {
+      result.Add(commit.Sha);
+      foreach(var childStub in stub.Children)
+      {
+        AddDescendants(childStub, result);
+      }
+    }
+  }
+
+  /// <summary>
   /// Return all commits connected to this graph where <paramref name="predicate"/> returns true,
   /// but it does not return true for any of the child commits that are connected to this graph.
   /// </summary>

@@ -44,6 +44,8 @@ let private parseArgs args =
       rest |> parseMore {o with SortOrder = RefSort.ByCommitStamp}
     | "-byname" :: rest ->
       rest |> parseMore {o with SortOrder = RefSort.ByRefName}
+    | "-byhash" :: rest | "-bysha" :: rest ->
+      rest |> parseMore {o with SortOrder = RefSort.ByCommitHash}
     | "-g" :: groupname :: rest ->
       if groupname |> Scaffold.isValidScaffoldGroup then
         rest |> parseMore {o with GroupName = groupname |> Some}

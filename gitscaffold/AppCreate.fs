@@ -64,7 +64,7 @@ let private runApp o =
   let commits =
     let filter = new CommitFilter();
     let includes =
-      [ "refs/*" ] // for now: include everything and exclude nothing
+      [ "refs/*" ]
       |> Seq.map (fun glob -> repo.Refs.FromGlob(glob))
       |> Seq.toArray
     filter.IncludeReachableFrom <- includes

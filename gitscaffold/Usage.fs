@@ -56,7 +56,8 @@ let usage focus =
     cp "  \fx\fx\fx                 a commit hash, a branch, a tag, or a full ref path"
     cp ""
   if showSection "drop" then
-    cp "\fogitscaffold \fydrop\f0 [\fg-repo \fcwitness\f0] {\fg-c \fccommit\f0} [\fg-g \fcgroup\f0|\fg-all\f0] [\fr-force\f0]"
+    cpx "\fogitscaffold \fydrop\f0 [\fg-repo \fcwitness\f0] {\fg-c \fccommit\f0} [\fg-g \fcgroup\f0|\fg-all\f0]"
+    cp " [\fg-dry\f0] [\fr-force\f0]"
     cp "  Drop ungrouped or grouped scaffolds for the specified commits. If dropping a scaffold would make"
     cp "  the commit unreachable, a grouped commit is converted to ungrouped, while an ungrouped one aborts."
   if showDetail "drop" then
@@ -65,6 +66,7 @@ let usage focus =
     cp "  \fg-g \fcgroup\f0         If present: the group from which to drop the scaffolds given by \fg-c\f0"
     cp "  \fx\fx\fx                 If not present: drop ungrouped scaffolds."
     cp "  \fg-all\f0\fx             Drop all scaffolds (all grouped and ungrouped) from the selected commits."
+    cp "  \fg-dry\f0\fx             Do not actually drop anything, only report what would happen."
     cp "  \fr-force\f0\fx           Allows dropping ungrouped scaffolds that would cause their commit to become"
     cp "  \fx\fx\fx                 unreachable. If not present such cases cause the command to abort."
     cp "  \fx\fx\fx                 \foUnreachable commits are effectively permanently deleted from the repo\f0."
