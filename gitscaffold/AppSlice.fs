@@ -84,90 +84,95 @@ let private parseArgs args =
 
 // The actual command execution, taking the parsed Options as argument
 let private runSlice o =
-  if o.RepoWitness |> GitRepo.FindGitDbFolder |> String.IsNullOrEmpty then
-    cp $"\frError!\fo Not part of any GIT repository: \f0'\fy{o.RepoWitness}\f0'."
-    1
-  else
-    use gitrepo = new GitRepo(o.RepoWitness)
-    let repo = gitrepo.Repo
-    cp $"Using repository \fg{gitrepo.Label}\f0 (\fc{gitrepo.GitDbFolder}\f0)"
-    let refs = new ReferenceMap(gitrepo)
-    let commitRefMap = new CommitReferenceMap(refs.References.Values)
-    let commits =
-      let filter = new CommitFilter();
-      let includes =
-        [ "refs/*" ] // for now: include everything and exclude nothing
-        |> Seq.map (fun glob -> repo.Refs.FromGlob(glob))
-        |> Seq.toArray
-      filter.IncludeReachableFrom <- includes
-      repo.Commits.QueryBy(filter)
+  use gitrepo = new GitRepo(o.RepoWitness)
+  let repo = gitrepo.Repo
+  cp $"Using repository \fg{gitrepo.Label}\f0 (\fc{gitrepo.GitDbFolder}\f0)"
+  let refs = new ReferenceMap(gitrepo)
+  let commitRefMap = new CommitReferenceMap(refs.References.Values)
+  let commits =
+    let filter = new CommitFilter();
+    let includes =
+      [ "refs/*" ] // for now: include everything and exclude nothing
+      |> Seq.map (fun glob -> repo.Refs.FromGlob(glob))
       |> Seq.toArray
-    cp $"Found \fb{commits.Length}\f0 commits in the repository."
-    let graph = new CommitStubGraph(commits)
-    let tipcount = graph.AllTips() |> Seq.length
-    let rootcount = graph.AllRoots() |> Seq.length
-    cp $"  (\fb{tipcount}\f0 tips and \fb{rootcount}\f0 roots)"
-    let beforeOption =
-      match o.Method with
-      | None ->
-        cp "\frInternal error\f0."
-        None
-      | Some(ByDate(date)) ->
-        date |> Some
-      | Some(ByCommit(sha)) ->
-        let commit = repo.Lookup<Commit>(sha)
-        if commit = null then
-          cp $"\foCommit '{sha}\fo' not found\f0."
-          None
-        else
-          // Add a tiny delay to get the "before-or-at" logic
-          commit.Committer.When.AddMilliseconds(500.0) |> Some
-    match beforeOption with
+    filter.IncludeReachableFrom <- includes
+    repo.Commits.QueryBy(filter)
+    |> Seq.toArray
+  cp $"Found \fb{commits.Length}\f0 commits in the repository."
+  let graph = new CommitStubGraph(commits)
+  let tipcount = graph.AllTips() |> Seq.length
+  let rootcount = graph.AllRoots() |> Seq.length
+  cp $"  (\fb{tipcount}\f0 tips and \fb{rootcount}\f0 roots)"
+  let beforeOption =
+    match o.Method with
     | None ->
+      cp "\frInternal error\f0."
+      None
+    | Some(ByDate(date)) ->
+      date |> Some
+    | Some(ByCommit(committish)) ->
+      let commitOption = committish |> Scaffold.tryResolveCommit repo
+      match commitOption with
+      | None ->
+        cp $"\foCommit '{committish}\fo' not found (or not resolvable to a commit)\f0."
+        None
+      | Some(commit) ->
+        let stamp = commit.Committer.When
+        let stampText = stamp.ToString("yyyy-MM-dd HH:mm:ss K")
+        cp $"  Resolved commit '\fg{committish}\f0' to \fy{commit.Sha}\f0 (\fc{stampText}\f0)"
+        // Add a second to get the "before-or-at" logic (GIT stamps have a granularity of 1 second)
+        stamp.AddSeconds(1.0) |> Some
+  match beforeOption with
+  | None ->
+    1
+  | Some(before) ->
+    let beforeText = before.ToString("yyyy-MM-dd HH:mm:ss K")
+    cp $"Slicing repository before \fc{beforeText}\f0."
+    let beforeCount =
+      commits
+      |> Seq.where (fun c -> c.Committer.When < before)
+      |> Seq.length
+    cp $"Total commits before: \fb{beforeCount}\f0. Commits after: \fc{commits.Length - beforeCount}\f0."
+    let tipsBefore =
+      graph.ConditionalTips(fun c -> c.Committer.When < before)
+      |> Seq.sortByDescending (fun c -> c.Committer.When)
+      |> Seq.toArray
+    let rootsBefore =
+      graph.ConditionalRoots(fun c -> c.Committer.When < before)
+      |> Seq.sortByDescending (fun c -> c.Committer.When)
+      |> Seq.toArray
+    cp $"Tips before: \fb{tipsBefore.Length}\f0. Roots before: \fc{rootsBefore.Length}\f0."
+    if tipsBefore.Length < 1 then
+      cp "\foThe repository did not exist at that time - there is nothing to slice. \frAborting\f0."
       1
-    | Some(before) ->
-      let beforeText = before.ToString("yyyy-MM-dd HH:mm:ss.f K")
-      cp $"Slicing repository before \fc{beforeText}\f0."
-      let beforeCount =
-        commits
-        |> Seq.where (fun c -> c.Committer.When < before)
-        |> Seq.length
-      cp $"Total commits before: \fb{beforeCount}\f0. Commits after: \fc{commits.Length - beforeCount}\f0."
-      let tipsBefore =
-        graph.ConditionalTips(fun c -> c.Committer.When < before)
-        |> Seq.sortByDescending (fun c -> c.Committer.When)
-        |> Seq.toArray
-      let rootsBefore =
-        graph.ConditionalRoots(fun c -> c.Committer.When < before)
-        |> Seq.sortByDescending (fun c -> c.Committer.When)
-        |> Seq.toArray
-      cp $"Tips before: \fb{tipsBefore.Length}\f0. Roots before: \fc{rootsBefore.Length}\f0."
-      if tipsBefore.Length < 1 then
-        cp "\foThe repository did not exist at that time - there is nothing to slice. \frAborting\f0."
-        1
-      else
-        cp "Slice edge commits:"
+    else
+      cp "Slice edge commits:"
+      for tip in tipsBefore do
+        let stamp = tip.Committer.When.ToString("yyyy-MM-dd HH:mm:ss K")
+        cp $"  tip  \fc{stamp} \fg{tip.Sha}\f0."
+      for root in rootsBefore do
+        let stamp = root.Committer.When.ToString("yyyy-MM-dd HH:mm:ss K")
+        cp $"  root \fb{stamp} \fy{root.Sha}\f0."
+      let scaffoldGroup =
+        match o.Scaffold with
+        | None -> None
+        | Some(ScaffoldGroupSource.Group(group)) ->
+          group |> Some
+        | Some(ScaffoldGroupSource.FromDate) ->
+          before.ToUniversalTime().ToString("yyyy-MM-dd") |> Some
+      match scaffoldGroup with
+      | Some(group) ->
+        cp $"Creating or updating scaffold references in group '\fo{group}\f0':"
         for tip in tipsBefore do
-          let stamp = tip.Committer.When.ToString("yyyy-MM-dd HH:mm:ss K")
-          cp $"  tip  \fc{stamp} \fg{tip.Sha}\f0."
-        for root in rootsBefore do
-          let stamp = root.Committer.When.ToString("yyyy-MM-dd HH:mm:ss K")
-          cp $"  root \fb{stamp} \fy{root.Sha}\f0."
-        let scaffoldGroup =
-          match o.Scaffold with
-          | None -> None
-          | Some(ScaffoldGroupSource.Group(group)) ->
-            group |> Some
-          | Some(ScaffoldGroupSource.FromDate) ->
-            before.ToUniversalTime().ToString("yyyy-MM-dd") |> Some
-        match scaffoldGroup with
-        | Some(group) ->
-          cp $"Creating or updating scaffold references in group '\fo{group}\f0':"
-          for tip in tipsBefore do
-            let dr = tip |> Scaffold.createGroupedScaffold group
-            cp $" \fmscaffolding\f0 reference to commit \fc{tip.Sha}\f0 : \fg{dr.CanonicalName}\f0."
-        | None -> ()
-        0
+          let rc = tip |> Scaffold.createGroupedScaffold group
+          match rc with
+          | Scaffold.Existing(r) ->
+            cp $" \fgExisting\f0 reference to commit \fc{tip.Sha}\f0 : \fg{r.CanonicalName}\f0."
+          | Scaffold.Created(r) ->
+            cp $" \fmCreated\f0  reference to commit \fc{tip.Sha}\f0 : \fg{r.CanonicalName}\f0."
+      | None ->
+        cp "(\fkNo \fG-scaffold\fk given, so not creating any scaffold refs\f0)"
+      0
 
 // The entry point of this subcommand. Return 0 on success, or 1 on failure.
 // "args" is a list of strings

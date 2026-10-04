@@ -18,6 +18,10 @@ let private __scaffoldGroupRegex = new Regex(@"^[a-zA-Z0-9]+(-[a-zA-Z0-9]+)*$")
 // Matches any string that is a valid prefix of a hexadecimal sequence (including odd-count ones!)
 let private __hexRegex = new Regex(@"^[a-fA-F0-9]+$")
 
+type RefCreation =
+  | Existing of Reference
+  | Created of Reference
+
 let isValidScaffoldGroup (group:string) =
   __scaffoldGroupRegex.IsMatch(group) && not(__hexRegex.IsMatch(group))
 
@@ -29,8 +33,11 @@ let createCommitScaffold (commit:Commit) =
   let repo = (commit :> IBelongToARepository).Repository
   let tag = commit |> shatag
   let refname = $"refs/scaffold/c/{tag}"
-  // the target should always be the given commit, so overwriting (rather than checking) is fine
-  repo.Refs.Add(refname, commit.Id, true)
+  let existing = repo.Refs[refname]
+  if existing <> null then
+    existing |> RefCreation.Existing
+  else
+    repo.Refs.Add(refname, commit.Id) :> Reference |> RefCreation.Created
 
 /// Create a grouped scaffold for a commit
 let createGroupedScaffold group (commit:Commit) =
@@ -39,9 +46,29 @@ let createGroupedScaffold group (commit:Commit) =
   let repo = (commit :> IBelongToARepository).Repository
   let tag = commit |> shatag
   let refname = $"refs/scaffold/g/{group}/{tag}"
-  // the target should always be the given commit, so overwriting (rather than checking) is fine
-  repo.Refs.Add(refname, commit.Id, true)
+  let existing = repo.Refs[refname]
+  if existing <> null then
+    existing |> RefCreation.Existing
+  else
+    repo.Refs.Add(refname, commit.Id) :> Reference |> RefCreation.Created
 
+let tryResolveCommit (repo:Repository) (committish: string) =
+  let o = repo.Lookup(committish)
+  match o with
+  | null ->
+    None
+  | :? Commit as commit ->
+    commit |> Some
+  | :? TagAnnotation as annotation ->
+    match annotation.Target with
+    | :? Commit as commit ->
+      commit |> Some
+    | _ ->
+      // give up
+      None
+  | _ ->
+    // unrecognized
+    None
 
 
 

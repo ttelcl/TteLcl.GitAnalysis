@@ -67,39 +67,35 @@ let private parseArgs args =
 
 // The actual command execution, taking the parsed Options as argument
 let private runList o =
-  if o.RepoWitness |> GitRepo.FindGitDbFolder |> String.IsNullOrEmpty then
-    cp $"\frError!\fo Not part of any GIT repository: \f0'\fy{o.RepoWitness}\f0'."
-    1
-  else
-    use gitrepo = new GitRepo(o.RepoWitness)
-    cp $"Using repository \fg{gitrepo.Label}\f0 (\fc{gitrepo.GitDbFolder}\f0)"
-    let filter =
-      match o.GroupName with
-      | None -> "refs/scaffold/"
-      | Some(group) -> $"refs/scaffold/{group}/"
-    let refs = new ReferenceMap(gitrepo, filter)
-    let commitRefMap = new CommitReferenceMap(refs.References.Values)
-    let pairs =
-      commitRefMap.CommitsByReference
-      |> Seq.map (fun kvp -> (kvp.Key, kvp.Value))
-    let sortedPairs =
-      match o.SortOrder with
-      | RefSort.ByRefName ->
-        pairs |> Seq.sortBy (fun (k,_) -> k)
-      | RefSort.ByCommitStamp ->
-        pairs |> Seq.sortByDescending (fun (_,v) -> v.Committer.When)
-      | RefSort.ByCommitHash ->
-        pairs |> Seq.sortBy (fun (_,v) -> v.Sha)
-      | RefSort.NoSort ->
-        pairs
-    let sortedPairs = sortedPairs |> Seq.toArray
-    cp $"Found \fb{sortedPairs.Length}\f0 scaffold refs."
-    for (refname, commit) in sortedPairs do
-      let stamp = commit.Committer.When.ToString("yyyy-MM-dd HH:mm:ss K")
-      let name = refname
-      let sha = commit.Sha
-      cp $"\fc{stamp} \fy{sha} \fg{name}\f0."
-    0
+  use gitrepo = new GitRepo(o.RepoWitness)
+  cp $"Using repository \fg{gitrepo.Label}\f0 (\fc{gitrepo.GitDbFolder}\f0)"
+  let filter =
+    match o.GroupName with
+    | None -> "refs/scaffold/"
+    | Some(group) -> $"refs/scaffold/{group}/"
+  let refs = new ReferenceMap(gitrepo, filter)
+  let commitRefMap = new CommitReferenceMap(refs.References.Values)
+  let pairs =
+    commitRefMap.CommitsByReference
+    |> Seq.map (fun kvp -> (kvp.Key, kvp.Value))
+  let sortedPairs =
+    match o.SortOrder with
+    | RefSort.ByRefName ->
+      pairs |> Seq.sortBy (fun (k,_) -> k)
+    | RefSort.ByCommitStamp ->
+      pairs |> Seq.sortByDescending (fun (_,v) -> v.Committer.When)
+    | RefSort.ByCommitHash ->
+      pairs |> Seq.sortBy (fun (_,v) -> v.Sha)
+    | RefSort.NoSort ->
+      pairs
+  let sortedPairs = sortedPairs |> Seq.toArray
+  cp $"Found \fb{sortedPairs.Length}\f0 scaffold refs."
+  for (refname, commit) in sortedPairs do
+    let stamp = commit.Committer.When.ToString("yyyy-MM-dd HH:mm:ss K")
+    let name = refname
+    let sha = commit.Sha
+    cp $"\fc{stamp} \fy{sha} \fg{name}\f0."
+  0
 
 // The entry point of this subcommand. Return 0 on success, or 1 on failure.
 // "args" is a list of strings
