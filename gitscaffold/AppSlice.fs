@@ -115,6 +115,12 @@ let private runSlice o =
   let tipcount = graph.AllTips() |> Seq.length
   let rootcount = graph.AllRoots() |> Seq.length
   cp $"  (\fb{tipcount}\f0 tips and \fb{rootcount}\f0 roots)"
+  let refs = new ReferenceMap(gitrepo)
+  let commitRefMap = new CommitReferenceMap(refs.References.Values)
+  let forgetCount = refs.ForgetReferencesWhere(
+    fun r -> commitRefMap.CommitsByReference.ContainsKey(r.CanonicalName) |>  not)
+  let referencesTo commitSha =
+    commitSha |> commitRefMap.ReferencesForCommit |> Seq.sort |> Seq.toArray
   let beforeOption =
     match o.Method with
     | None ->
@@ -173,13 +179,22 @@ let private runSlice o =
         cp "\foNo matching commits found in the given time range - there is nothing to slice. \frAborting\f0."
       1
     else
-      cp "Slice edge commits:"
+      cp "Slice tip commits:"
       for tip in tipsBefore do
         let stamp = tip.Committer.When.ToString("yyyy-MM-dd HH:mm:ss K")
-        cp $"  tip  \fc{stamp} \fg{tip.Sha}\f0."
+        let references = tip.Sha |> referencesTo
+        let referenceText =
+          if references.Length = 0 then
+            "(\fkno references\f0)"
+          elif references.Length = 1 then
+            $"[\fo{references[0]}\f0]"
+          else
+            $"[\fo{references[0]}\f0] and \fb{references.Length-1}\f0 more."
+        cp $"  tip  \fc{stamp} \f0(\fg{tip.Sha}\f0) {referenceText}"
+      cp "Slice root commits:"
       for root in rootsBefore do
         let stamp = root.Committer.When.ToString("yyyy-MM-dd HH:mm:ss K")
-        cp $"  root \fb{stamp} \fy{root.Sha}\f0."
+        cp $"  root \fb{stamp} \f0(\fy{root.Sha}\f0)"
       let scaffoldGroup =
         match o.Scaffold with
         | None -> None
