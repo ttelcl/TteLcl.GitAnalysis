@@ -23,6 +23,7 @@ type private Options = {
   RepoWitness: string
   Method: SliceMethod option
   Scaffold: ScaffoldGroupSource option
+  NotBefore: DateTimeOffset option
 }
 
 let private parseArgs args =
@@ -62,6 +63,18 @@ let private parseArgs args =
       else
         cp $"\foCannot parse '\fy{dateText}\fo' as a date. Expecting a \fcyyyy-MM-dd\fo format\f0."
         None
+    | "-starting" :: dateText :: rest | "-from" :: dateText :: rest | "-notbefore" :: dateText :: rest ->
+      let ok, date =
+        DateTimeOffset.TryParseExact(
+          dateText, 
+          [| "yyyy-MM-dd" |],
+          CultureInfo.InvariantCulture,
+          DateTimeStyles.AssumeUniversal ||| DateTimeStyles.AdjustToUniversal)
+      if ok then
+        rest |> parseMore {o with NotBefore = date |> Some}
+      else
+        cp $"\foCannot parse '\fy{dateText}\fo' as a date. Expecting a \fcyyyy-MM-dd\fo format\f0."
+        None
     | [] ->
       // The recursion terminator. You probably want to reverse any lists in the Options
       // argument. Also a great place for last minute validation
@@ -80,6 +93,7 @@ let private parseArgs args =
     RepoWitness = Environment.CurrentDirectory
     Method = None
     Scaffold = None
+    NotBefore = None
   }
 
 // The actual command execution, taking the parsed Options as argument
@@ -134,17 +148,29 @@ let private runSlice o =
       |> Seq.where (fun c -> c.Committer.When < before)
       |> Seq.length
     cp $"Total commits before: \fb{beforeCount}\f0. Commits after: \fc{commits.Length - beforeCount}\f0."
+    let notBefore =
+      match o.NotBefore with
+      | None ->
+        DateTimeOffset.UnixEpoch
+      | Some(dto) ->
+        let stampText = dto.ToString("yyyy-MM-dd HH:mm:ss K")
+        cp $"Filtering to exclude commits before \fr{stampText}\f0."
+        dto
     let tipsBefore =
-      graph.ConditionalTips(fun c -> c.Committer.When < before)
+      graph.ConditionalTips(fun c -> c.Committer.When < before && c.Committer.When >= notBefore)
       |> Seq.sortByDescending (fun c -> c.Committer.When)
       |> Seq.toArray
     let rootsBefore =
-      graph.ConditionalRoots(fun c -> c.Committer.When < before)
+      graph.ConditionalRoots(fun c -> c.Committer.When < before && c.Committer.When >= notBefore)
       |> Seq.sortByDescending (fun c -> c.Committer.When)
       |> Seq.toArray
-    cp $"Tips before: \fb{tipsBefore.Length}\f0. Roots before: \fc{rootsBefore.Length}\f0."
+    cp $"Matching tips: \fb{tipsBefore.Length}\f0. Matching roots: \fc{rootsBefore.Length}\f0."
     if tipsBefore.Length < 1 then
-      cp "\foThe repository did not exist at that time - there is nothing to slice. \frAborting\f0."
+      match o.NotBefore with
+      | None ->
+        cp "\foThe repository did not exist at that time - there is nothing to slice. \frAborting\f0."
+      | Some(_) ->
+        cp "\foNo matching commits found in the given time range - there is nothing to slice. \frAborting\f0."
       1
     else
       cp "Slice edge commits:"
