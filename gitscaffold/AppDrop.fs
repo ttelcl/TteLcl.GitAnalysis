@@ -98,6 +98,7 @@ let private runApp o =
     repo.Commits.QueryBy(filter)
     |> Seq.toArray
   cp $"Found \fb{commits.Length}\f0 commits in the repository."
+  let db = repo |> GitRefsDb.ForRepository
   let graph = new CommitStubGraph(commits)
   let refs = new ReferenceMap(gitrepo)
   let commitRefMap = new CommitReferenceMap(refs.References.Values)
@@ -139,16 +140,16 @@ let private runApp o =
       |> Seq.where (fun r -> r.StartsWith(prefix) && r.EndsWith(suffix))
       |> Seq.toArray
   
-  let refsToDropFor comittish =
-    let resolution = comittish |> tryResolveCommit repo
+  let refsToDropFor committish =
+    let resolution = committish |> tryResolveCommit repo
     match resolution with
     | CommitResolution.Success(commit) ->
       commit |> refsToDropForCommit
     | CommitResolution.NotFound ->
-      cp $"\foNo matching commits for '\fy{comittish}\fo' \fw-> ignoring\f0."
+      cp $"\foNo matching commits for '\fy{committish}\fo' \fw-> ignoring\f0."
       [||]
     | CommitResolution.Ambiguous(_) ->
-      cp $"\foAmbiguous pattern matching multiple commits '\fy{comittish}\fo' \fw-> ignoring\f0."
+      cp $"\foAmbiguous pattern matching multiple commits '\fy{committish}\fo' \fw-> ignoring\f0."
       [||]
 
   let dropCandidateSet =
