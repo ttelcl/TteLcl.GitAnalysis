@@ -101,6 +101,10 @@ let private runApp o =
   let graph = new CommitStubGraph(commits)
   let refs = new ReferenceMap(gitrepo)
   let commitRefMap = new CommitReferenceMap(refs.References.Values)
+  let forgetCount = refs.ForgetReferencesWhere(
+    fun r -> commitRefMap.CommitsByReference.ContainsKey(r.CanonicalName) |>  not)
+  if forgetCount > 0 then
+    cp $"\foExcluding \fb{forgetCount}\fo non-commit references \f0(\fkleaving \fb{refs.References.Count}\fk commit references\f0)"
 
   (* Something not working right. Using git's own repo as sample
   > gitscaffold list -repo k:\src\github\git -byhash  

@@ -42,6 +42,33 @@ public sealed class ReferenceMap
   public IReadOnlyDictionary<string, Reference> References => _references;
 
   /// <summary>
+  /// Forget the reference identified by the given canonical name
+  /// </summary>
+  /// <param name="name"></param>
+  public void ForgetReference(string name)
+  {
+    _references.Remove(name);
+  }
+
+  /// <summary>
+  /// Forget all references where the <paramref name="predicate"/> returns true
+  /// </summary>
+  /// <param name="predicate"></param>
+  /// <returns>
+  /// The number of references that were removed
+  /// </returns>
+  public int ForgetReferencesWhere(Func<Reference, bool> predicate)
+  {
+    var forgetKeys = new List<string>(
+      _references.Where(kvp => predicate(kvp.Value)).Select(kvp => kvp.Key));
+    foreach(var key in forgetKeys)
+    {
+      ForgetReference(key);
+    }
+    return forgetKeys.Count;
+  }
+
+  /// <summary>
   /// Add all or a subset of the references in the <paramref name="repo"/> to this map.
   /// </summary>
   /// <param name="repo">

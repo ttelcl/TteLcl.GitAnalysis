@@ -55,6 +55,18 @@ public class CommitReferenceMap
   }
 
   /// <summary>
+  /// The names of the references stored in this <see cref="CommitReferenceMap"/> (all
+  /// of which have a target <see cref="Commit"/>)
+  /// </summary>
+  public IReadOnlyCollection<string> ReferenceNames => _map.Keys;
+
+  /// <summary>
+  /// The commits in this <see cref="CommitReferenceMap"/>, all of which have at least one
+  /// <see cref="Reference"/> pointing at them
+  /// </summary>
+  public IReadOnlyCollection<Commit> Commits => _map.Values;
+
+  /// <summary>
   /// Return the list of full reference names that point to the commit with the given id.
   /// Returns an empty list if no references are known for the commit.
   /// If not already done so, this will hydrate <see cref="ReferencesByCommit"/> as side effect.
