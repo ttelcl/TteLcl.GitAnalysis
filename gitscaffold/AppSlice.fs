@@ -24,6 +24,7 @@ type private Options = {
   Method: SliceMethod option
   Scaffold: ScaffoldGroupSource option
   NotBefore: DateTimeOffset option
+  OnlyMissing: bool
 }
 
 let private parseArgs args =
@@ -75,6 +76,8 @@ let private parseArgs args =
       else
         cp $"\foCannot parse '\fy{dateText}\fo' as a date. Expecting a \fcyyyy-MM-dd\fo format\f0."
         None
+    | "-new" :: rest | "-missing" :: rest | "-onlymissing" :: rest ->
+      rest |> parseMore {o with OnlyMissing = true}
     | [] ->
       // The recursion terminator. You probably want to reverse any lists in the Options
       // argument. Also a great place for last minute validation
@@ -94,6 +97,7 @@ let private parseArgs args =
     Method = None
     Scaffold = None
     NotBefore = None
+    OnlyMissing = false
   }
 
 // The actual command execution, taking the parsed Options as argument
@@ -170,13 +174,22 @@ let private runSlice o =
       graph.ConditionalRoots(fun c -> c.Committer.When < before && c.Committer.When >= notBefore)
       |> Seq.sortByDescending (fun c -> c.Committer.When)
       |> Seq.toArray
+    let prefilterTips = tipsBefore
     cp $"Matching tips: \fb{tipsBefore.Length}\f0. Matching roots: \fc{rootsBefore.Length}\f0."
+    let tipsBefore =
+      if o.OnlyMissing then
+        let onlyMissing =
+          tipsBefore
+          |> Array.where (fun tip -> tip.Sha |> referencesTo |> Array.isEmpty)
+        cp $"\foSkipping\f0 \fb{tipsBefore.Length - onlyMissing.Length}\f0 tips that already have a reference, leaving \fb{onlyMissing.Length}\f0."
+        onlyMissing
+      else
+        tipsBefore
     if tipsBefore.Length < 1 then
-      match o.NotBefore with
-      | None ->
+      if o.NotBefore.IsSome || prefilterTips.Length > 0 then
+        cp "\foNo matching commits found in the given time range - there is nothing left to slice. \frAborting\f0."
+      else
         cp "\foThe repository did not exist at that time - there is nothing to slice. \frAborting\f0."
-      | Some(_) ->
-        cp "\foNo matching commits found in the given time range - there is nothing to slice. \frAborting\f0."
       1
     else
       cp "Slice tip commits:"

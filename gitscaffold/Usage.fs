@@ -42,6 +42,7 @@ let usage focus =
     cp "  \fx\fx\fx                 '\fcid\f0' can be an (abbreviated) commit hash, branch, tag, or full ref"
     cp "  \fx\fx\fx                 That commit itself is included (so: 'before-or-at' instead of 'before')"
     cp "  \fg-starting \fcdate\f0   Filter the set of calculated tips by excluding any before \fcdate\f0."
+    cp "  \fg-new\f0\fx             Only scaffold selected commits that did not have any reference at all (alias \fg-missing\fo)"
     cp "  \fg-scaffold \fcgroup\f0  Create scaffold refs for the commits at the edge, in the given \fcgroup\f0."
     cp "  \fx\fx\fx                 Without this option the operation is read-only."
     cp "  \fg-scaffold \fo-auto\f0  Likewise, but derive the group name from the slice date."
