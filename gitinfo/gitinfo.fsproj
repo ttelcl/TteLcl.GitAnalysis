@@ -22,6 +22,7 @@
     <Compile Include="AppReferences.fs" />
     <Compile Include="AppCommits.fs" />
     <Compile Include="AppChain.fs" />
+    <Compile Include="AppReach.fs" />
     <Compile Include="Program.fs" />
     <None Include="README.md" />
   </ItemGroup>

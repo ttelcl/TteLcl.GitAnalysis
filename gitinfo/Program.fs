@@ -28,6 +28,8 @@ let rec run arglist =
     rest |> AppCommits.run
   | "chain" :: rest ->
     rest |> AppChain.run
+  | "reach" :: rest ->
+    rest |> AppReach.run
   | x :: _ ->
     cp $"\frUnknown command \f0'\fy{x}\f0'"
     1

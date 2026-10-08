@@ -73,6 +73,18 @@ let usage focus =
     cp "  \fg-from \fccommit\f0  Walk up along children of \fccommit\f0 until the first commit that has not exactly 1 child"
     cp "  \fg-to   \fccommit\f0  Walk down along parents of \fccommit\f0 until the first commit that has not exactly 1 parent"
     cp "  \fg-both \fccommit\f0  Combine \fg-from\f0 and \fg-to\f0, walking the commit chain on both sides"
+    cp ""
+  if showSection "reach" then
+    cp "\fogitinfo \fyreach\f0 [\fg-repo \fcpath\f0] [\fg-tips\f0|\fg-roots\f0] {\fg-c \fccommit\f0} [\fg-diff\f0]"
+    cp "   Find the tips that can reach the given commits or the roots reachable from them"
+  if showDetail "reach" then
+    cp "  \fx      \fccommit\f0  Commits can be specified as commit ids or refs"
+    cp "  \fg-repo \fcpath\f0    Any path within the target repository. Defaults to the current directory"
+    cp "  \fg-c \fccommit\f0     Include a commit to find tips or roots for (repeatable)"
+    cp "  \fg-tips\f0\fx         Find the tip commits that can reach the commits specified with \fg-c\f0."
+    cp "  \fg-roots\f0\fx        Find the root commits reachable from the commits specified with \fg-c\f0."
+    cp "  \fg-diff\f0\fx         Requires exactly 2 \fg-c\f0 options. Highlight the differences between the two commits."
+    cp ""
 
   cp "\fg-v               \f0Verbose mode"
 
