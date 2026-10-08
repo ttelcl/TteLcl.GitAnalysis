@@ -34,6 +34,16 @@ public class CommitStubGraph
   }
 
   /// <summary>
+  /// Create a new <see cref="CommitStubGraph"/> from all commits in <paramref name="repo"/>.
+  /// </summary>
+  /// <param name="repo"></param>
+  /// <returns></returns>
+  public static CommitStubGraph FromRepo(Repository repo)
+  {
+    return repo.QueryCommits().ToGraph();
+  }
+
+  /// <summary>
   /// The mapping of full SHA ids to their commit stubs
   /// </summary>
   public IReadOnlyDictionary<string, CommitStub> StubMap => _stubMap;
@@ -131,6 +141,94 @@ public class CommitStubGraph
   }
 
   /// <summary>
+  /// Calculate the set of ancestors of <paramref name="commit"/> connected to this graph
+  /// (that is: parents, parents of parents, etc. all the way to the roots, optionally
+  /// including <paramref name="commit"/> itself)
+  /// </summary>
+  /// <param name="commit">
+  /// The commit to start from. If this commit is not connected to this graph an empty
+  /// set is returned.
+  /// </param>
+  /// <param name="inclusive">
+  /// If true, <paramref name="commit"/> itself is included in the result set (if it is
+  /// connected to this graph)
+  /// </param>
+  /// <returns>
+  /// A set of the SHA ids of the commits reachable from <paramref name="commit"/> via the
+  /// parent axis.
+  /// </returns>
+  public IReadOnlySet<string> Ancestors(Commit commit, bool inclusive)
+  {
+    var result = new HashSet<string>();
+    var stub = _stubMap.TryGetValue(commit.Sha, out var s) ? s : null;
+    if(stub != null)
+    {
+      AddAncestors(stub, result);
+      if(!inclusive)
+      {
+        result.Remove(commit.Sha);
+      }
+    }
+    return result;
+  }
+
+  /// <summary>
+  /// Given the subset <paramref name="commitSet"/> of the commits in this graph,
+  /// return the commits in that set for which no child is also in the set.
+  /// </summary>
+  /// <param name="commitSet"></param>
+  /// <returns></returns>
+  /// <exception cref="InvalidOperationException"></exception>
+  public IReadOnlySet<string> TipsOf(IReadOnlySet<string> commitSet)
+  {
+    var result = new HashSet<string>();
+    foreach(var sha in commitSet)
+    {
+      if(_stubMap.TryGetValue(sha, out var stub) && stub.Target != null)
+      {
+        if(!stub.Children.Any(childStub => commitSet.Contains(childStub.Sha)))
+        {
+          result.Add(sha);
+        }
+      }
+      else
+      {
+        throw new InvalidOperationException(
+          $"Expecting all entries in the argument to be in this graph");
+      }
+    }
+    return result;
+  }
+
+  /// <summary>
+  /// Given the subset <paramref name="commitSet"/> of the commits in this graph,
+  /// return the commits in that set for which no parent is also in the set.
+  /// </summary>
+  /// <param name="commitSet"></param>
+  /// <returns></returns>
+  /// <exception cref="InvalidOperationException"></exception>
+  public IReadOnlySet<string> RootsOf(IReadOnlySet<string> commitSet)
+  {
+    var result = new HashSet<string>();
+    foreach(var sha in commitSet)
+    {
+      if(_stubMap.TryGetValue(sha, out var stub) && stub.Target != null)
+      {
+        if(!stub.Parents.Any(childStub => commitSet.Contains(childStub.Sha)))
+        {
+          result.Add(sha);
+        }
+      }
+      else
+      {
+        throw new InvalidOperationException(
+          $"Expecting all entries in the argument to be in this graph");
+      }
+    }
+    return result;
+  }
+
+  /// <summary>
   /// Recursively add <paramref name="stub"/> and its children to <paramref name="result"/>
   /// if it is connected to this graph.
   /// </summary>
@@ -145,6 +243,25 @@ public class CommitStubGraph
       foreach(var childStub in stub.Children)
       {
         AddDescendants(childStub, result);
+      }
+    }
+  }
+
+  /// <summary>
+  /// Recursively add <paramref name="stub"/> and its parents to <paramref name="result"/>
+  /// if it is connected to this graph.
+  /// </summary>
+  /// <param name="stub"></param>
+  /// <param name="result"></param>
+  private void AddAncestors(CommitStub stub, HashSet<string> result)
+  {
+    var commit = stub.Target;
+    if(commit != null && !result.Contains(commit.Sha)) // is it connected and not already in the result?
+    {
+      result.Add(commit.Sha);
+      foreach(var parentStub in stub.Parents)
+      {
+        AddAncestors(parentStub, result);
       }
     }
   }

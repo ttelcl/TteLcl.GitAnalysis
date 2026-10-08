@@ -81,8 +81,8 @@ let usage focus =
     cp "  \fx      \fccommit\f0  Commits can be specified as commit ids or refs"
     cp "  \fg-repo \fcpath\f0    Any path within the target repository. Defaults to the current directory"
     cp "  \fg-c \fccommit\f0     Include a commit to find tips or roots for (repeatable)"
-    cp "  \fg-tips\f0\fx         Find the tip commits that can reach the commits specified with \fg-c\f0."
-    cp "  \fg-roots\f0\fx        Find the root commits reachable from the commits specified with \fg-c\f0."
+    cp "  \fg-tips\f0\fx         List the tip commits that can reach the commits specified with \fg-c\f0."
+    cp "  \fg-roots\f0\fx        List the root commits reachable from the commits specified with \fg-c\f0."
     cp "  \fg-diff\f0\fx         Requires exactly 2 \fg-c\f0 options. Highlight the differences between the two commits."
     cp ""
 

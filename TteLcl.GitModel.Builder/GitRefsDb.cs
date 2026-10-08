@@ -17,9 +17,9 @@ namespace TteLcl.GitModel.Builder;
 /// </summary>
 public class GitRefsDb
 {
-  private Dictionary<string, GitRefInfo> _infosByRefName;
-  private Dictionary<string, GitRefInfo<Commit>> _commitsByRefName;
-  private Dictionary<string, IReadOnlySet<string>> _refsByCommit;
+  private readonly Dictionary<string, GitRefInfo> _infosByRefName;
+  private readonly Dictionary<string, GitRefInfo<Commit>> _commitsByRefName;
+  private readonly Dictionary<string, IReadOnlyList<GitRefInfo<Commit>>> _refsByCommit;
 
   /// <summary>
   /// Create a new empty <see cref="GitRefsDb"/>
@@ -28,7 +28,7 @@ public class GitRefsDb
   {
     _infosByRefName = new Dictionary<string, GitRefInfo>();
     _commitsByRefName = new Dictionary<string, GitRefInfo<Commit>>();
-    _refsByCommit = new Dictionary<string, IReadOnlySet<string>>(StringComparer.OrdinalIgnoreCase);
+    _refsByCommit = new Dictionary<string, IReadOnlyList<GitRefInfo<Commit>>>();
   }
 
   /// <summary>
@@ -40,17 +40,6 @@ public class GitRefsDb
   public static GitRefsDb ForRepository(Repository repo)
   {
     return (new GitRefsDb()).WithRefs(repo.Refs);
-  }
-
-  /// <summary>
-  /// Create a new <see cref="GitRefsDb"/> and add all references in <paramref name="repo"/>
-  /// to it.
-  /// </summary>
-  /// <param name="repo"></param>
-  /// <returns></returns>
-  public static GitRefsDb ForRepository(GitRepo repo)
-  {
-    return (new GitRefsDb()).WithRefs(repo.Repo.Refs);
   }
 
   /// <summary>
@@ -77,9 +66,9 @@ public class GitRefsDb
   public IReadOnlyDictionary<string, GitRefInfo<Commit>> CommitRefInfosByRefName => _commitsByRefName;
 
   /// <summary>
-  /// Get a mapping from known commit identifiers to a set of names of references that map back to them
+  /// Get a mapping from known commit identifiers to a set of reference descriptors that map back to them
   /// </summary>
-  public IReadOnlyDictionary<string, IReadOnlySet<string>> ReferenceNamesByCommit => _refsByCommit;
+  public IReadOnlyDictionary<string, IReadOnlyList<GitRefInfo<Commit>>> ReferenceNamesByCommit => _refsByCommit;
 
   /// <summary>
   /// Return the list of all descriptors of refs in this <see cref="GitRefsDb"/>
@@ -96,7 +85,16 @@ public class GitRefsDb
   /// <summary>
   /// Get the ids of all commits that are targeted by at least one reference.
   /// </summary>
-  public IReadOnlyCollection<string> ReferencedCommits => _refsByCommit.Keys;
+  public IReadOnlyCollection<string> ReferencedCommitTags => _refsByCommit.Keys;
+
+  /// <summary>
+  /// Enumerate all <see cref="Commit"/>s that are directly referenced by one or more references
+  /// in this collection
+  /// </summary>
+  public IEnumerable<Commit> ReferencedCommits =>
+    _refsByCommit.Values
+    // precondition: all refinfos in the list share the same commit and the list is not empty
+    .Select(list => list[0].Target);
 
   /// <summary>
   /// Return the <see cref="GitRefInfo"/> for the commit-targetting reference with the given
@@ -110,16 +108,16 @@ public class GitRefsDb
   }
 
   /// <summary>
-  /// Try to get the set of reference canonical names for the commit with the given
+  /// Try to get the set of reference descriptors that share the commit with the given
   /// <see cref="GitObject.Sha"/>.
   /// </summary>
   /// <param name="commitSha"></param>
-  /// <param name="refNames"></param>
+  /// <param name="refs"></param>
   /// <returns></returns>
   public bool TryGetRefNamesForCommit(
-    string commitSha, [MaybeNullWhen(false)]out IReadOnlySet<string> refNames)
+    string commitSha, [MaybeNullWhen(false)] out IReadOnlyList<GitRefInfo<Commit>> refs)
   {
-    return _refsByCommit.TryGetValue(commitSha, out refNames);
+    return _refsByCommit.TryGetValue(commitSha, out refs);
   }
 
   /// <summary>
@@ -140,23 +138,28 @@ public class GitRefsDb
   /// <returns></returns>
   public GitRefInfo Add(Reference reference)
   {
+    if(_infosByRefName.TryGetValue(reference.CanonicalName, out var existing))
+    {
+      // Don't insert the same ref again
+      return existing;
+    }
     var refInfo = GitRefInfo.Create(reference);
     _infosByRefName[refInfo.CanonicalName] = refInfo;
     if(refInfo is GitRefInfo<Commit> commitRef)
     {
       _commitsByRefName[commitRef.CanonicalName] = commitRef;
       var sha = commitRef.Sha;
-      HashSet<string> refNames;
-      if(!_refsByCommit.TryGetValue(sha, out var infoSet))
+      List<GitRefInfo<Commit>> refList;
+      if(!_refsByCommit.TryGetValue(sha, out var infoList))
       {
-        refNames = new HashSet<string>();
-        _refsByCommit[sha] = refNames;
+        refList = new List<GitRefInfo<Commit>>();
+        _refsByCommit[sha] = refList;
       }
       else
       {
-        refNames = (HashSet<string>)infoSet;
+        refList = (List<GitRefInfo<Commit>>)infoList;
       }
-      refNames.Add(commitRef.CanonicalName);
+      refList.Add(commitRef);
     }
     return refInfo;
   }

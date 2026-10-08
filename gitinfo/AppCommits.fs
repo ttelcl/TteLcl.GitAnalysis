@@ -350,6 +350,8 @@ let private runCommits o =
       |> Seq.map (fun glob -> repo.Repo.Refs.FromGlob(glob))
       |> Seq.toArray
     filter.IncludeReachableFrom <- includes
+  else
+    cp "\foWarning: no \fg-i\fo includes specified: defaulting to include the HEAD commit only\f0"
   if o.ExcludeGlobs |> List.isEmpty |> not then
     let excludes =
       o.ExcludeGlobs
